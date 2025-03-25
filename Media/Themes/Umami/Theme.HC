@@ -51,7 +51,7 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
         widget->width = Max(widget->image->width + 8, widget->width);
         widget->height = Max(widget->image->height + 8, widget->height);
     }
-    Rect2D(win->render_ctx, x + 1, y + 1, widget->width - 2, widget->height - 2,
+    ctx->fill_rect(x + 1, y + 1, widget->width - 2, widget->height - 2,
         Color(232, 232, 232));
     Line2D(win->render_ctx, x + 1, y, x + widget->width - 1, y,
         Color(96, 96, 96));
@@ -298,7 +298,7 @@ U0 @umami_terminal_repaint_col(Window* win, TerminalWidget* widget, I64 row,
                        .col[col + widget->scroll.x]
                        .background;
     col_bg_color.u8[3] = win->opacity;
-    Rect2D(widget->backing_store, 2 + (col * 8), 2 + (row * 16), 8, 16,
+    widget->backing_store->fill_rect(2 + (col * 8), 2 + (row * 16), 8, 16,
         col_bg_color);
     PutS2D(widget->backing_store, Compositor.theme.font.monospace, 2 + (col * 8),
         2 + (row * 16),
@@ -738,7 +738,7 @@ U0 @umami_terminal_repaint(Window* win, TerminalWidget* widget, I64 x, I64 y)
             widget->state = TERMINAL_STATE_OUTPUT;
     }
     if (widget->state == TERMINAL_STATE_OUTPUT && !widget->cursor.hidden && widget->scroll.y == widget->max.y)
-        Rect2D(widget->backing_store, 2 + (widget->cursor.x * 8),
+        widget->backing_store->fill_rect(2 + (widget->cursor.x * 8),
             2 + (widget->cursor.y * 16), 8, 16, widget->color.cursor);
 }
 
@@ -797,7 +797,7 @@ U0 @umami_input_repaint(Window* win, I64 event,
         Color(190, 190, 190));
     VLine2D(win->render_ctx, x + widget->width, y + 1, y + widget->height,
         Color(190, 190, 190));
-    Rect2D(win->render_ctx, x + 1, y + 1, widget->width - 1, widget->height - 1,
+    ctx->fill_rect(x + 1, y + 1, widget->width - 1, widget->height - 1,
         Color(255, 255, 255));
 
     if (widget == win->focused_widget) {
@@ -851,7 +851,7 @@ U0 @umami_input_repaint(Window* win, I64 event,
         }
 
         if (index >= widget->selected_region_start && index <= widget->selected_region_end) {
-            Rect2D(text_input_ctx, -widget->x_offset + text_x_pos, 0, text_width,
+            text_input_ctx->fill_rect(-widget->x_offset + text_x_pos, 0, text_width,
                 widget->font->line_height + 3, Compositor.theme.color.hilight);
         }
         if (index >= widget->selected_region_start && index <= widget->selected_region_end)
@@ -914,7 +914,7 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
         icon_y = 4 + (widget->height / 2) - (widget->icon->height / 2) - 3;
     }
     if (@widget_is_hovered(win->x + x, win->y + y, widget)) {
-        Rect2D(win->render_ctx, x, y, widget->width, widget->height,
+        ctx->fill_rect(x, y, widget->width, widget->height,
             Compositor.theme.color.hilight);
         text_color = Color(255, 255, 255);
         if (widget->submenu) {
@@ -1004,7 +1004,7 @@ U0 @umami_horz_slider_repaint(Window* win, I64 event,
         }
     }
 
-    Rect2D(win->render_ctx, x, y + 5, widget->width, 4, Color(156, 156, 156));
+    ctx->fill_rect(x, y + 5, widget->width, 4, Color(156, 156, 156));
     if (@umami_horz_slider_is_hovered(win, widget, x, y, widget->scroll) && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
         win->mouse_down_widget = widget;
         widget->origin.mouse_x = Mouse.x;
@@ -1085,7 +1085,7 @@ U0 @umami_vert_slider_repaint(Window* win, I64 event,
             widget->origin.mouse_y = Mouse.y;
         }
     }
-    Rect2D(win->render_ctx, x + 5, y, 4, widget->height, Color(156, 156, 156));
+    ctx->fill_rect(x + 5, y, 4, widget->height, Color(156, 156, 156));
     if (@umami_horz_slider_is_hovered(win, widget, x, y, widget->scroll) && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
         win->mouse_down_widget = widget;
         widget->origin.mouse_y = Mouse.y;
@@ -1134,7 +1134,7 @@ U0 @umami_vert_scroll_button_repaint(Window* win, I64 x, I64 y, I64 width,
     I64 i;
     Context2D* ctx = win->render_ctx;
 
-    Rect2D(win->render_ctx, x, y, width, height, Color(192, 192, 192));
+    ctx->fill_rect(x, y, width, height, Color(192, 192, 192));
     for (i = 0; i < height; i++) {
         Line2D(win->render_ctx, x, y, x, y + height - 1, Color(192, 192, 192));
         Line2D(win->render_ctx, x + 1, y, x + 1, y + height - 1,
@@ -1195,7 +1195,7 @@ U0 @umami_vert_scrollbar_repaint(Window* win, I64 event,
     if (!Mouse.left)
         widget->in_drag = FALSE;
 
-    Rect2D(win->render_ctx, x, y, widget->width, widget->height,
+    ctx->fill_rect(x, y, widget->width, widget->height,
         Color(127, 127, 127));
 
     for (i = 0; i < widget->width; i++) {
@@ -1408,13 +1408,13 @@ U0 @umami_window_repaint(Window* win, I64 event)
 
     // Draw window margins
     if (!@gui_window_flag_is_set(win, WIN_FLAGS_NOFILL)) {
-        Rect2D(win->render_ctx, 0, 0, win->width, 4,
+        ctx->fill_rect(0, 0, win->width, 4,
             Color(204, 204, 204, win->opacity));
-        Rect2D(win->render_ctx, 0, win->height - 4, win->width, 4,
+        ctx->fill_rect(0, win->height - 4, win->width, 4,
             Color(204, 204, 204, win->opacity));
-        Rect2D(win->render_ctx, 0, 0, 4, win->height,
+        ctx->fill_rect(0, 0, 4, win->height,
             Color(204, 204, 204, win->opacity));
-        Rect2D(win->render_ctx, win->width - 5, 0, 4, win->height,
+        ctx->fill_rect(win->width - 5, 0, 4, win->height,
             Color(204, 204, 204, win->opacity));
     }
 
@@ -1546,7 +1546,7 @@ U0 @umami_window_repaint(Window* win, I64 event)
                 title_bar_y + 4, Color(255, 255, 255, win->opacity),
                 title_bar_width, &window_title);
         } else {
-            Rect2D(win->render_ctx, title_bar_x, title_bar_y, title_bar_width,
+            ctx->fill_rect(title_bar_x, title_bar_y, title_bar_width,
                 title_bar_height, Color(235, 235, 235, win->opacity));
             PutS2D(win->render_ctx, Compositor.theme.font.menu, title_bar_x + 4,
                 title_bar_y + 4, Color(156, 156, 156, win->opacity),
