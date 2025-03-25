@@ -90,7 +90,7 @@ U0 @taskswitcher_render_win_thumbs(Window* win)
     cursor = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, -999, -999,
         win_thumb_container_size, win_thumb_container_size);
     cursor->ctx = NewContext2D(win_thumb_container_size, win_thumb_container_size);
-    Fill2D(cursor->ctx, Compositor.theme.color.hilight);
+    cursor->ctx->fill(Compositor.theme.color.hilight);
 
     I64 min_caption_width = 0;
     win_items = 0;
@@ -129,13 +129,13 @@ U0 @taskswitcher_render_win_thumbs(Window* win)
                     (win_thumb_container_size * cur_item) + item_offset, 0,
                     win_thumb_container_size, win_thumb_container_size);
                 widget->ctx = NewContext2D(win_thumb_container_size, win_thumb_container_size);
-                Fill2D(widget->ctx, NULL);
+                widget->ctx->fill(0);
                 win_scale = 1.0;
                 while (iter_list->window->backing_store->width * win_scale > win_thumb_size || iter_list->window->backing_store->height * win_scale > win_thumb_size)
                     win_scale -= 0.001;
 
                 win_scaled = Scale2D(iter_list->window->backing_store, win_scale, win_scale);
-                Fill2D(widget->ctx, NULL);
+                widget->ctx->fill(0);
                 Blot2D(widget->ctx,
                     (win_thumb_container_size / 2) - (win_scaled->width / 2),
                     (win_thumb_container_size / 2) - (win_scaled->height / 2),

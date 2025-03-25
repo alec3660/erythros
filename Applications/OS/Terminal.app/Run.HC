@@ -109,13 +109,13 @@ VerticalScrollBarWidget* vscroll = Gui.CreateWidget(win, WIDGET_TYPE_VERT_SCROLL
 vscroll->height = 128;
 Context2DWidget* status = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, 0, 0, Display.Width(), 44);
 status->ctx = NewContext2D(Display.Width(), 44);
-Fill2D(status->ctx, Color(204, 204, 204, win->opacity));
+status->ctx->fill(Color(204, 204, 204, win->opacity));
 
 U0 @terminal_create_new_instance()
 {
     U32 init_bg_color = t->color.background;
     init_bg_color.u8[3] = win->opacity;
-    Fill2D(t->backing_store, init_bg_color);
+    t->backing_store->fill(init_bg_color);
     active_term = t;
     sh = @shell_new;
     sh->session = &Compositor.session;

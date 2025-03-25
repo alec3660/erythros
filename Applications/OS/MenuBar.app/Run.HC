@@ -58,8 +58,9 @@ U0 @system_menu_show(Context2DWidget* widget)
 {
     sys_menu->x = 0;
     sys_menu->y = 32;
-    if (widget->width == 30 && widget->height == 30)
-        Fill2D(widget->ctx, Color(192, 192, 192));
+    if (widget->width == 30 && widget->height == 30) {
+        widget->ctx->fill(Color(192, 192, 192));
+    }
     Gui.Window.Show(sys_menu);
     Gui.Window.SetFocus(sys_menu);
     Gui.Window.Refresh(sys_menu);

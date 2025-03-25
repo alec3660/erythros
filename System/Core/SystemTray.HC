@@ -20,7 +20,7 @@ U0 @systemtray_register_item(I64 addr)
     Context2DWidget* item = Gui.CreateWidget(
         Compositor.menubar.win, WIDGET_TYPE_CONTEXT2D, -24, 0, 24, 24);
     item->ctx = NewContext2D(item->width, item->height);
-    Fill2D(item->ctx, Color(0, 0, 0, 0));
+    item->ctx->fill(0);
     MemSetI64(addr, item, 1);
 }
 

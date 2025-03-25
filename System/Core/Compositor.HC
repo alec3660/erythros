@@ -194,7 +194,7 @@ U0 @compositor_set_wallpaper(Context2D* ctx, U32 mode, U32 background)
             switch (mode) {
             case CPZ_WALLPAPER_CENTERED:
                 tmp = NewContext2D(Display.Width(), Display.Height());
-                Fill2D(tmp, background);
+                tmp->fill(background);
                 CopyRect2D(tmp,
                     (Display.Width() / 2) - (ctx->width / 2),
                     (Display.Height() / 2) - (ctx->height / 2),

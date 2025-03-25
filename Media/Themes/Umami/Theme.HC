@@ -749,7 +749,7 @@ I64 @umami_input_get_text_width(BitmapFontTextInputWidget* widget)
     I64 text_width = PutS2D(NULL, widget->font, 0, 0, Color(0, 0, 0), -1, &widget->text);
 
     Context2D* ctx = NewContext2D(text_width, widget->font->line_height);
-    Fill2D(ctx, 0);
+    ctx->fill(0);
     PutS2D(ctx, widget->font, 0, 0, Color(128, 255, 255), -1, &widget->text);
 
     for (x = ctx->width - 1; x > -1; x--) {
