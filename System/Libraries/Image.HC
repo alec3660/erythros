@@ -25,7 +25,6 @@ Context2D* @image_buffer_to_context2d(U8* buffer, I64 size)
     Context2D* ctx = CAlloc(sizeof(Context2D));
     ctx->width = x;
     ctx->height = y;
-    ctx->bpp = 32;
     ctx->fb = pixels;
     I64 i;
     for (i = 0; i < x * y; i++) {

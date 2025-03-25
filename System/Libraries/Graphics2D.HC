@@ -1,9 +1,27 @@
-class Context2D {
+class @context2d
+{
     I64 width;
     I64 height;
-    I64 bpp;
     U32* fb;
 };
+
+class @callable_context2d : @context2d
+{
+    U0 (*blot)(I64 x, I64 y, @callable_context2d* src);
+    U0 (*blur)(I64 radius);
+    U0 (*copy_rect)(I64 x, I64 y, @callable_context2d* rect);
+    U0 (*fill)(U32 color = 0);
+    U0 (*fill_rect)(I64 x, I64 y, I64 w, I64 h, U32 color);
+    U32 (*peek)(I64 x, I64 y);
+    U0 (*plot)(I64 x, I64 y, U32 color);
+    U0 (*line)(I64 x1, I64 y1, I64 x2, I64 y2, U32 color);
+    @callable_context2d* (*clipped)();
+    @callable_context2d* (*rotated)(F64 angle);
+    @callable_context2d* (*scaled)(F64 scale_x, F64 scale_y);
+};
+
+extern @callable_context2d* @create_callable_context2d(@context2d* ctx);
+#define Context2D @callable_context2d
 
 class Bounds2D {
     I64 x1;
@@ -648,9 +666,8 @@ Context2D* NewContext2D(I64 width, I64 height,
     Context2D* ctx = CAlloc(sizeof(Context2D));
     ctx->width = width;
     ctx->height = height;
-    ctx->bpp = bpp;
     ctx->fb = CAlloc((width * height) * bpp / 8);
-    return ctx;
+    return @create_callable_context2d(ctx);
 }
 
 U0 DelContext2D(Context2D* ctx)
@@ -1199,6 +1216,13 @@ Context2D* FastBoxBlur2D(Context2D* img, I64 radius)
     return total;
 }
 
+U0 BlurInPlace(Context2D* img, I64 radius)
+{
+    Context2D* blurred = FastBoxBlur2D(img, radius);
+    CopyRect2D(img, 0, 0, blurred);
+    DelContext2D(blurred);
+}
+
 U8 @scale2d_get_byte(I64 value, I64 n) { return (value >> (n * 8) & 0xFF); }
 
 U32 @scale2d_get_pixel(Context2D* img, I64 x, I64 y)
@@ -1409,7 +1433,6 @@ U0 @graphics2d_init()
     Graphics2D.fb = CAlloc(sizeof(Context2D));
     Graphics2D.fb->width = Display.width;
     Graphics2D.fb->height = Display.height;
-    Graphics2D.fb->bpp = Display.bpp;
     Graphics2D.fb->fb = Display.fb;
     Fill2D(Graphics2D.fb, 0x0);
 }
@@ -1424,5 +1447,225 @@ Context2D @graphics2d_get_framebuffer_context2d() { return Graphics2D.fb; }
 Graphics2D.FrameBufferContext2D = &@graphics2d_get_framebuffer_context2d;
 Graphics2D.Init = &@graphics2d_init;
 Graphics2D.Flip = &@graphics2d_flip;
+
+U0 @c2d_blot_wrapper_function(I64 x, I64 y, @callable_context2d* src)
+{
+    Context2D* dst = 0xDEDEDEDEDEDEDEDE;
+    Blot2D(dst, x, y, src);
+}
+
+U0 @c2d_blur_wrapper_function(I64 radius)
+{
+    Context2D* img = 0xDEDEDEDEDEDEDEDE;
+    BlurInPlace(img, radius);
+}
+
+U0 @c2d_copy_rect_wrapper_function(I64 x, I64 y, @callable_context2d* rect)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    CopyRect2D(ctx, x, y, rect);
+}
+
+U0 @c2d_fill_wrapper_function(U32 color = 0)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Fill2D(ctx, color);
+}
+
+U0 @c2d_fill_rect_wrapper_function(I64 x, I64 y, I64 w, I64 h, U32 color)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Rect2D(ctx, x, y, w, h, color);
+}
+
+U32 @c2d_peek_wrapper_function(I64 x, I64 y)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    return Peek2D(ctx, x, y);
+}
+
+U0 @c2d_plot_wrapper_function(I64 x, I64 y, U32 color)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Plot2D(ctx, x, y, color);
+}
+
+U0 @c2d_line_wrapper_function(I64 x1, I64 y1, I64 x2, I64 y2, U32 color)
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Line2D(ctx, x1, y1, x2, y2, color);
+}
+
+@callable_context2d* @c2d_clipped_wrapper_function()
+{
+    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    return ClipToRect2D(ctx);
+}
+
+@callable_context2d* @c2d_rotated_wrapper_function(F64 angle)
+{
+    Context2D* src = 0xDEDEDEDEDEDEDEDE;
+    return Rotate2D(src, angle);
+}
+
+@callable_context2d* @c2d_scaled_wrapper_function(F64 scale_x, F64 scale_y)
+{
+    Context2D* src = 0xDEDEDEDEDEDEDEDE;
+    return Scale2D(src, scale_x, scale_y);
+}
+
+@callable_context2d* @create_callable_context2d(@context2d* ctx)
+{
+    @callable_context2d* res = CAlloc(sizeof(@callable_context2d));
+    MemCpy(res, ctx, sizeof(@context2d));
+
+    U64 a;
+    I64 code_size;
+
+    // blot
+    code_size = MSize(&@c2d_blot_wrapper_function);
+    res->blot = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->blot, &@c2d_blot_wrapper_function, code_size);
+
+    a = res->blot;
+    a += 0x1c;
+    MemSetI64(a, res, 1);
+
+    a = res->blot;
+    a += 0x2a;
+    @patch_call_rel32(a, &Blot2D);
+
+    // blur
+    code_size = MSize(&@c2d_blur_wrapper_function);
+    res->blur = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->blur, &@c2d_blur_wrapper_function, code_size);
+
+    a = res->blur;
+    a += 0x10;
+    MemSetI64(a, res, 1);
+
+    a = res->blur;
+    a += 0x1a;
+    @patch_call_rel32(a, &BlurInPlace);
+
+    // copy_rect
+    code_size = MSize(&@c2d_copy_rect_wrapper_function);
+    res->copy_rect = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->copy_rect, &@c2d_copy_rect_wrapper_function, code_size);
+
+    a = res->copy_rect;
+    a += 0x1c;
+    MemSetI64(a, res, 1);
+
+    a = res->copy_rect;
+    a += 0x2a;
+    @patch_call_rel32(a, &CopyRect2D);
+
+    // fill
+    code_size = MSize(&@c2d_fill_wrapper_function);
+    res->fill = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->fill, &@c2d_fill_wrapper_function, code_size);
+
+    a = res->fill;
+    a += 0x0f;
+    MemSetI64(a, res, 1);
+
+    a = res->fill;
+    a += 0x19;
+    @patch_call_rel32(a, &Fill2D);
+
+    // fill_rect
+    code_size = MSize(&@c2d_fill_rect_wrapper_function);
+    res->fill_rect = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->fill_rect, &@c2d_fill_rect_wrapper_function, code_size);
+
+    a = res->fill_rect;
+    a += 0x28;
+    MemSetI64(a, res, 1);
+
+    a = res->fill_rect;
+    a += 0x3a;
+    @patch_call_rel32(a, &Rect2D);
+
+    // peek
+    code_size = MSize(&@c2d_peek_wrapper_function);
+    res->peek = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->peek, &@c2d_peek_wrapper_function, code_size);
+
+    a = res->peek;
+    a += 0x16;
+    MemSetI64(a, res, 1);
+
+    a = res->peek;
+    a += 0x22;
+    @patch_call_rel32(a, &Peek2D);
+
+    // plot
+    code_size = MSize(&@c2d_plot_wrapper_function);
+    res->plot = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->plot, &@c2d_plot_wrapper_function, code_size);
+
+    a = res->plot;
+    a += 0x1b;
+    MemSetI64(a, res, 1);
+
+    a = res->plot;
+    a += 0x29;
+    @patch_call_rel32(a, &Plot2D);
+
+    // line
+    code_size = MSize(&@c2d_line_wrapper_function);
+    res->line = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->line, &@c2d_line_wrapper_function, code_size);
+
+    a = res->line;
+    a += 0x28;
+    MemSetI64(a, res, 1);
+
+    a = res->line;
+    a += 0x3a;
+    @patch_call_rel32(a, &Line2D);
+
+    // clipped
+    code_size = MSize(&@c2d_clipped_wrapper_function);
+    res->clipped = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->clipped, &@c2d_clipped_wrapper_function, code_size);
+
+    a = res->clipped;
+    a += 0x0b;
+    MemSetI64(a, res, 1);
+
+    a = res->clipped;
+    a += 0x14;
+    @patch_call_rel32(a, &ClipToRect2D);
+
+    // rotated
+    code_size = MSize(&@c2d_rotated_wrapper_function);
+    res->rotated = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->rotated, &@c2d_rotated_wrapper_function, code_size);
+
+    a = res->rotated;
+    a += 0x0b;
+    MemSetI64(a, res, 1);
+
+    a = res->rotated;
+    a += 0x18;
+    @patch_call_rel32(a, &Rotate2D);
+
+    // scaled
+    code_size = MSize(&@c2d_scaled_wrapper_function);
+    res->scaled = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->scaled, &@c2d_scaled_wrapper_function, code_size);
+
+    a = res->scaled;
+    a += 0x0b;
+    MemSetI64(a, res, 1);
+
+    a = res->scaled;
+    a += 0x1c;
+    @patch_call_rel32(a, &Scale2D);
+
+    return res;
+}
 
 "graphics2d ";
