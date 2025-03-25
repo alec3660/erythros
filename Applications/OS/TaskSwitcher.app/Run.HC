@@ -136,7 +136,7 @@ U0 @taskswitcher_render_win_thumbs(Window* win)
 
                 win_scaled = Scale2D(iter_list->window->backing_store, win_scale, win_scale);
                 widget->ctx->fill(0);
-                Blot2D(widget->ctx,
+                widget->ctx->blot(
                     (win_thumb_container_size / 2) - (win_scaled->width / 2),
                     (win_thumb_container_size / 2) - (win_scaled->height / 2),
                     win_scaled);

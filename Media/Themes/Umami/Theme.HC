@@ -40,6 +40,7 @@ Context2D* umami_widget_sb_right_button =
 
 U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
 {
+    Context2D* ctx = win->render_ctx;
     I64 text_offset;
     I64 text_width;
     if (!widget->color)
@@ -64,7 +65,7 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
 
         if (widget->image) {
-            Blot2D(win->render_ctx, x + 5, y + 5, widget->image);
+            ctx->blot(x + 5, y + 5, widget->image);
         }
 
         Line2D(win->render_ctx, x + 1, y + 1, x + widget->width - 2, y + 1,
@@ -86,7 +87,7 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
     } else {
 
         if (widget->image) {
-            Blot2D(win->render_ctx, x + 4, y + 4, widget->image);
+            ctx->blot(x + 4, y + 4, widget->image);
         }
 
         Line2D(win->render_ctx, x + 2, y + 2, x + widget->width - 2, y + 2,
@@ -120,23 +121,22 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
 
 U0 @umami_checkbox_repaint(Window* win, CheckBoxWidget* widget, I64 x, I64 y)
 {
-
+    Context2D* ctx = win->render_ctx;
     if (widget == win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
-        Blot2D(win->render_ctx, x, y,
+        ctx->blot(x, y,
             T(widget->checked, umami_widget_checkbox_checked_active,
                 umami_widget_checkbox_active));
         return;
     }
     if (widget == win->mouse_down_widget->echo && widget != win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, win->mouse_down_widget)) {
-        Blot2D(win->render_ctx, x, y,
+        ctx->blot(x, y,
             T(widget->checked, umami_widget_checkbox_checked_active,
                 umami_widget_checkbox_active));
         return;
     }
-    Blot2D(
-        win->render_ctx, x, y,
+    ctx->blot(x, y,
         T(widget->checked, umami_widget_checkbox_checked, umami_widget_checkbox));
 }
 
@@ -780,7 +780,7 @@ U0 @umami_input_draw_cursor(Window* win, BitmapFontTextInputWidget* widget,
 U0 @umami_input_repaint(Window* win, I64 event,
     BitmapFontTextInputWidget* widget, I64 x, I64 y)
 {
-
+    Context2D* ctx = win->render_ctx;
     if (!widget->font)
         widget->font = Compositor.theme.font.sans;
     U8* text;
@@ -884,7 +884,7 @@ U0 @umami_input_repaint(Window* win, I64 event,
         @umami_input_draw_cursor(win, widget, index, x, y,
             -widget->x_offset + text_x_pos);
 
-    Blot2D(win->render_ctx, x + 3, y + 2, text_input_ctx);
+    ctx->blot(x + 3, y + 2, text_input_ctx);
     DelContext2D(text_input_ctx);
 }
 
@@ -904,6 +904,7 @@ U0 @umami_list_view_repaint(Window* win, ListViewWidget* widget, I64 x, I64 y)
 
 U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
 {
+    Context2D* ctx = win->render_ctx;
     U32 text_color = Color(0, 0, 0);
     I64 text_x = 8;
     I64 text_y = 4 + (widget->height / 2) - (16 / 2);
@@ -932,7 +933,7 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
     if (!widget->font)
         widget->font = Compositor.theme.font.menu;
     if (widget->icon) {
-        Blot2D(win->render_ctx, x + icon_x, y + icon_y, widget->icon);
+        ctx->blot(x + icon_x, y + icon_y, widget->icon);
         text_x += 20;
     }
     if (widget->text)
@@ -942,21 +943,22 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
 
 U0 @umami_radio_repaint(Window* win, RadioButtonWidget* widget, I64 x, I64 y)
 {
+    Context2D* ctx = win->render_ctx;
     if (widget == win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
-        Blot2D(win->render_ctx, x, y,
+        ctx->blot(x, y,
             T(widget->selected, umami_widget_radio_selected,
                 umami_widget_radio_active));
         return;
     }
     if (widget == win->mouse_down_widget->echo && widget != win->mouse_down_widget && !widget->selected &&
         @widget_is_hovered(win->x + x, win->y + y, win->mouse_down_widget)) {
-        Blot2D(win->render_ctx, x, y,
+        ctx->blot(x, y,
             T(win->mouse_down_widget(RadioButtonWidget*)->selected,
                 umami_widget_radio_selected, umami_widget_radio_active));
         return;
     }
-    Blot2D(win->render_ctx, x, y,
+    ctx->blot(x, y,
         T(widget->selected, umami_widget_radio_selected, umami_widget_radio));
 }
 
@@ -991,6 +993,7 @@ Bool @umami_horz_slider_is_hovered(Window* win, HorizontalSliderWidget* widget,
 U0 @umami_horz_slider_repaint(Window* win, I64 event,
     HorizontalSliderWidget* widget, I64 x, I64 y)
 {
+    Context2D* ctx = win->render_ctx;
     I64 scroll = widget->scroll;
     widget->height = 12;
     if (widget->in_drag &&
@@ -1046,7 +1049,7 @@ U0 @umami_horz_slider_repaint(Window* win, I64 event,
     VLine2D(win->render_ctx, x + widget->width, y + 11, y + 16,
         Color(255, 255, 255));
 
-    Blot2D(win->render_ctx, (x - 7) + widget->scroll, y,
+    ctx->blot((x - 7) + widget->scroll, y,
         umami_widget_horz_slider);
 
     if (widget->scroll != scroll)
@@ -1072,6 +1075,7 @@ Bool @umami_vert_slider_is_hovered(Window* win, VerticalSliderWidget* widget,
 U0 @umami_vert_slider_repaint(Window* win, I64 event,
     VerticalSliderWidget* widget, I64 x, I64 y)
 {
+    Context2D* ctx = win->render_ctx;
     I64 scroll = widget->scroll;
     widget->width = 12;
     if (widget->in_drag &&
@@ -1117,7 +1121,7 @@ U0 @umami_vert_slider_repaint(Window* win, I64 event,
         Color(190, 190, 190));
     HLine2D(win->render_ctx, x + 11, y + widget->height, x + 16,
         Color(255, 255, 255));
-    Blot2D(win->render_ctx, x, (y - 7) + widget->scroll,
+    ctx->blot(x, (y - 7) + widget->scroll,
         umami_widget_vert_slider);
 
     if (widget->scroll != scroll)
@@ -1207,8 +1211,8 @@ U0 @umami_vert_scrollbar_repaint(Window* win, I64 event,
     @umami_vert_scroll_button_repaint(win, x, y + widget->height - 16,
         widget->width, 16);
 
-    Blot2D(win->render_ctx, x, y, umami_widget_sb_up_button);
-    Blot2D(win->render_ctx, x, y + widget->height - 16,
+    ctx->blot(x, y, umami_widget_sb_up_button);
+    ctx->blot(x, y + widget->height - 16,
         umami_widget_sb_down_button);
 
     @umami_vert_scroll_button_repaint(win, x, y + widget->scroll, widget->width,
@@ -1321,7 +1325,7 @@ U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
                     if (widget(Context2DWidget*)->fast_copy)
                         CopyRect2D(win->render_ctx, x, y, widget(Context2DWidget*)->ctx);
                     else
-                        Blot2D(win->render_ctx, x, y, widget(Context2DWidget*)->ctx);
+                        win->render_ctx->blot(x, y, widget(Context2DWidget*)->ctx);
                 break;
             case WIDGET_TYPE_RADIO:
                 @umami_radio_repaint(win, widget, x, y);
@@ -1373,6 +1377,7 @@ U0 @umami_window_repaint(Window* win, I64 event)
         return;
 
     win->repainting = TRUE;
+    Context2D* ctx = win->render_ctx;
 
     win->render_ctx->width = win->width;
     win->render_ctx->height = win->height;
@@ -1432,9 +1437,9 @@ U0 @umami_window_repaint(Window* win, I64 event)
 
         if (@gui_window_flag_is_set(win, WIN_FLAGS_ICON)) {
             if (win->icon)
-                Blot2D(win->render_ctx, 4, 4, win->icon);
+                ctx->blot(4, 4, win->icon);
             else
-                Blot2D(win->render_ctx, 4, 4, umami_default_icon);
+                ctx->blot(4, 4, umami_default_icon);
             title_bar_x = 24;
             title_bar_width -= 20;
         }
@@ -1565,7 +1570,7 @@ U0 @umami_window_repaint(Window* win, I64 event)
             Color(255, 255, 255, win->opacity));
 
         if (@gui_window_flag_is_set(win, WIN_FLAGS_RESIZABLE))
-            Blot2D(win->render_ctx, win->width - 16, win->height - 16,
+            ctx->blot(win->width - 16, win->height - 16,
                 umami_corner_resize);
     }
 
@@ -1628,7 +1633,7 @@ U0 @umami_pointer_wait_anim_init()
     I64 i;
     for (i = 0; i < 18; i++) {
         umami_pointer_wait_frames[i] = NewContext2D(24, 24);
-        Blot2D(umami_pointer_wait_frames[i], 0, -(24 * i), umami_pointer_wait_anim);
+        umami_pointer_wait_frames[i]->blot(0, -(24 * i), umami_pointer_wait_anim);
     }
     DelContext2D(umami_pointer_wait_anim);
 }

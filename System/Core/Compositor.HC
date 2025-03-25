@@ -1022,7 +1022,7 @@ U0 @compositor_task()
 
         // Draw Mouse Pointer (if no mouse integration).
         // if (!Mouse.Update || Mouse.integration_type == MI_QEMU)
-        Blot2D(Compositor.ctx, Mouse.X(), Mouse.Y(), Compositor.pointer);
+        Compositor.ctx->blot(Mouse.X(), Mouse.Y(), Compositor.pointer);
 
         // Debug stuff
         I64 debug_row;
