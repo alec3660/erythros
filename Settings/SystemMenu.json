@@ -1,0 +1,40 @@
+{
+    "items": [
+        {
+            "name": "Terminal",
+            "path": "M:/Applications/OS/Terminal.app",
+            "icon": "M:/Applications/OS/Terminal.app/Icon.png"
+        },
+        {
+            "name": "Accessories",
+            "items": [
+                {
+                    "name": "Calculator",
+                    "path": "M:/Applications/Accessories/Calculator.app",
+                    "icon": "M:/Applications/Accessories/Calculator.app/window_icon_16x16.png"
+                },
+                {
+                    "name": "TestApplication",
+                    "path": "M:/Applications/TestApplication.app"
+                }
+            ],
+            "icon": "M:/Applications/Accessories/Icon.png"
+        },
+        {
+            "name": "System",
+            "items": [
+                {
+                    "name": "TempleOS Window Manager",
+                    "path": "M:/Applications/OS/TempleOS.app",
+                    "icon": "M:/Applications/OS/TempleOS.app/window_icon_16x16.png"
+                }
+            ],
+            "icon": "M:/Applications/OS/Icon.png"
+        },
+        {
+            "name": "Shut Down",
+            "path": "M:/Applications/OS/ShutDown.app",
+            "icon": "M:/Applications/OS/ShutDown.app/Icon.png"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "jaktLanguageServer.compiler.executablePath": "jakt",
+    "git.ignoreLimitWarning": true,
+    "pmd-cpd.language": [
+        "cpp"
+    ],
+    "pmd-cpd.onStartBehavior": "Show",
+    "pmd-cpd.sourceDirectory": "/home/alec/repos/erythros",
+    "terminal.integrated.shellIntegration.history": 0
+}
