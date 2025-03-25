@@ -1128,6 +1128,7 @@ U0 @umami_vert_scroll_button_repaint(Window* win, I64 x, I64 y, I64 width,
     I64 height)
 {
     I64 i;
+    Context2D* ctx = win->render_ctx;
 
     Rect2D(win->render_ctx, x, y, width, height, Color(192, 192, 192));
     for (i = 0; i < height; i++) {
@@ -1140,14 +1141,14 @@ U0 @umami_vert_scroll_button_repaint(Window* win, I64 x, I64 y, I64 width,
             Color(64, 64, 64));
     }
 
-    Plot2D(win->render_ctx, x + 1, y, Color(192, 192, 192));
-    Plot2D(win->render_ctx, x + 14, y, Color(192, 192, 192));
-    Plot2D(win->render_ctx, x + 15, y, Color(64, 64, 64));
+    ctx->plot(x + 1, y, Color(192, 192, 192));
+    ctx->plot(x + 14, y, Color(192, 192, 192));
+    ctx->plot(x + 15, y, Color(64, 64, 64));
 
     Line2D(win->render_ctx, x + 1, y + 1, x + width - 2, y + 1,
         Color(255, 255, 255));
-    Plot2D(win->render_ctx, x + 14, y + 1, Color(128, 128, 128));
-    Plot2D(win->render_ctx, x + 15, y + 1, Color(64, 64, 64));
+    ctx->plot(x + 14, y + 1, Color(128, 128, 128));
+    ctx->plot(x + 15, y + 1, Color(64, 64, 64));
 
     Line2D(win->render_ctx, x + 1, y + height - 2, x + width - 2, y + height - 2,
         Color(128, 128, 128));
@@ -1164,6 +1165,7 @@ U0 @umami_vert_scrollbar_repaint(Window* win, I64 event,
     I64 segment_length = widget->length;
     I64 i, j;
     Bool fill = TRUE;
+    Context2D* ctx = win->render_ctx;
 
     if (widget->in_drag && Mouse.y > win->y + widget->y && Mouse.y < win->y + widget->y + widget->height) {
         if (widget->origin.mouse_y != Mouse.y) {
@@ -1195,7 +1197,7 @@ U0 @umami_vert_scrollbar_repaint(Window* win, I64 event,
     for (i = 0; i < widget->width; i++) {
         for (j = 16; j < widget->height - 16; j++) {
             if (fill)
-                Plot2D(win->render_ctx, i + x, j + y, Color(255, 255, 255));
+                ctx->plot(i + x, j + y, Color(255, 255, 255));
             fill = !fill;
         }
         fill = !fill;

@@ -110,9 +110,9 @@ U0 @templeos_winmgr_redraw()
         dc = DCScrnCapture;
         for (y = 0; y < GR_HEIGHT; y++) {
             for (x = 0; x < GR_WIDTH; x++) {
-                Plot2D(win->render_ctx, x + 4, y + 24,
+                win->render_ctx->plot(x + 4, y + 24,
                     tos_palette_std[dc->body[(y * dc->width) + x]]);
-                Plot2D(win->backing_store, x + 4, y + 24,
+                win->backing_store->plot(x + 4, y + 24,
                     tos_palette_std[dc->body[(y * dc->width) + x]]);
             }
         }
