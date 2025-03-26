@@ -30,7 +30,7 @@ I64 @shell_cmd_ping(@shell* sh, I64 argc, U8** argv)
         host, addr.u8[3], addr.u8[2], addr.u8[1], addr.u8[0], PING_PAYLOAD_SIZE);
 
     I64 i;
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < count && !sh->break; i++) {
         start_jiffies = cnts.jiffies;
         reply = @icmp_echo_request(addr, iden, seq, request, i);
         if (!reply) {
@@ -41,7 +41,7 @@ I64 @shell_cmd_ping(@shell* sh, I64 argc, U8** argv)
             Stdio.WriteLine(sh, "%d bytes from %d.%d.%d.%d: icmp_seq=%d ttl=%d time=%d ms\n",
                 reply.u16[1], addr.u8[3], addr.u8[2], addr.u8[1], addr.u8[0], seq, reply.u16[0], cnts.jiffies - start_jiffies);
         }
-        while (cnts.jiffies < start_jiffies + 1000 && i < (count - 1))
+        while (cnts.jiffies < start_jiffies + 1000 && i < (count - 1) && !sh->break)
             Sleep(1);
         ++seq;
     }
