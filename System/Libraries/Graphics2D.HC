@@ -676,6 +676,17 @@ U0 DelContext2D(Context2D* ctx)
         return;
     }
     Free(ctx->fb);
+    Free(ctx->scaled);
+    Free(ctx->rotated);
+    Free(ctx->clipped);
+    Free(ctx->line);
+    Free(ctx->plot);
+    Free(ctx->peek);
+    Free(ctx->fill_rect);
+    Free(ctx->fill);
+    Free(ctx->copy_rect);
+    Free(ctx->blur);
+    Free(ctx->blot);
     Free(ctx);
 }
 
@@ -1518,6 +1529,7 @@ U0 @c2d_line_wrapper_function(I64 x1, I64 y1, I64 x2, I64 y2, U32 color)
 {
     @callable_context2d* res = CAlloc(sizeof(@callable_context2d));
     MemCpy(res, ctx, sizeof(@context2d));
+    Free(ctx);
 
     U64 a;
     I64 code_size;
