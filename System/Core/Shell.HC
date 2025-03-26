@@ -223,8 +223,7 @@ I64 @shell_input_loop(@shell* sh)
     while (!exit) {
 
         @shell_update_prompts(sh);
-        Stdio.WriteLine(sh, &sh->PS1);
-        Stdio.ReadLine(sh, &buf);
+        Stdio.ReadLine(sh, sh->PS1, buf);
 
         @shell_history_append(sh, &buf);
         argv = @shell_parse_args(sh, &buf, &argc);

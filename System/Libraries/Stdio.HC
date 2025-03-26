@@ -1,6 +1,6 @@
 class @stdio
 {
-    U0 (*ReadLine)(@shell* sh, U8* str);
+    U0 (*ReadLine)(@shell* sh, U8* prompt, U8* str);
     U0 (*WriteLine)(@shell* sh, U8* fmt, ...);
 };
 
@@ -89,18 +89,137 @@ U0 @stdio_read_line_history_fwd(@shell* sh, I64 pos)
         FifoU8Ins(sh->input, *char ++);
 }
 
-U0 @stdio_read_line(@shell* sh, U8* str)
+I64 @stdio_read_line_autocomplete_cmd_count(U8* str)
+{
+    I64 cnt = 0;
+
+    I64 i;
+    CHashSrcSym* sym;
+    CHashTable* tbl = adam_task->hash_table;
+    while (tbl) {
+        for (i = 0; i < tbl->mask; i++) {
+            sym = tbl->body[i];
+            while (sym) {
+                if (sym->type == HTT_FUN) {
+                    if (!MemCmp(sym->str, str, StrLen(str))) {
+                        ++cnt;
+                    }
+                }
+                sym = sym->next;
+            }
+        }
+        tbl = tbl->next;
+    }
+    return cnt;
+}
+
+U0 @stdio_read_line_autocomplete_cmd(@shell* sh, U8* str, U8* line, I64* pos)
+{
+    I64 cnt = 0;
+
+    I64 i;
+    U8* ac_ch_ptr = NULL;
+    CHashSrcSym* sym;
+    CHashTable* tbl = adam_task->hash_table;
+    while (tbl) {
+        for (i = 0; i < tbl->mask; i++) {
+            sym = tbl->body[i];
+            while (sym) {
+                if (sym->type == HTT_FUN) {
+                    if (!MemCmp(sym->str, str, StrLen(str))) {
+                        ac_ch_ptr = sym->str + StrLen(str);
+                        while (*ac_ch_ptr) {
+                            String.Append(line, "%c", *ac_ch_ptr);
+                            FifoU8Ins(sh->output, *ac_ch_ptr);
+                            ++pos[0];
+                            ++ac_ch_ptr;
+                        }
+                        String.Append(line, " ");
+                        FifoU8Ins(sh->output, ' ');
+                        ++pos[0];
+                        return;
+                    }
+                }
+                sym = sym->next;
+            }
+        }
+        tbl = tbl->next;
+    }
+}
+
+U0 @stdio_read_line_autocomplete_list_cmds(@shell* sh, U8* prompt, U8* str, U8* line, I64* pos)
+{
+    I64 cnt = 0;
+
+    I64 i;
+    CHashSrcSym* sym;
+    CHashTable* tbl = adam_task->hash_table;
+    while (tbl) {
+        for (i = 0; i < tbl->mask; i++) {
+            sym = tbl->body[i];
+            while (sym) {
+                if (sym->type == HTT_FUN) {
+                    if (!MemCmp(sym->str, str, StrLen(str))) {
+                        if (!cnt) {
+                            @stdio_write_line(sh, "\n");
+                        }
+                        @stdio_write_line(sh, "%s\n", sym->str + StrLen("@shell_cmd_"));
+                        ++cnt;
+                    }
+                }
+                sym = sym->next;
+            }
+        }
+        tbl = tbl->next;
+    }
+    if (cnt) {
+        @stdio_write_line(sh, "%s%s", prompt, line);
+    }
+}
+
+U0 @stdio_read_line_autocomplete(@shell* sh, U8* prompt, U8* str, I64* pos)
+{
+    U8 ac_buf[4096];
+    I64 space_count = StrOcc(str, ' ');
+    I64 cmd_count = 0;
+    switch (space_count) {
+    case 0:
+        StrPrint(ac_buf, "@shell_cmd_%s", str);
+        cmd_count = @stdio_read_line_autocomplete_cmd_count(ac_buf);
+        switch (cmd_count) {
+        case 1:
+            @stdio_read_line_autocomplete_cmd(sh, ac_buf, str, pos);
+            break;
+        default:
+            // TODO: if we have >1, print the list
+            @stdio_read_line_autocomplete_list_cmds(sh, prompt, ac_buf, str, pos);
+            // and reprint str below it?
+            break;
+        }
+    default:
+        break;
+    }
+}
+
+U0 @stdio_read_line(@shell* sh, U8* prompt, U8* str)
 {
     U8 char = NULL;
     U8 line[4096];
+    MemSet(line, 0, 4096);
     I64 pos = 0;
     if (!str || !sh)
         return;
+    if (prompt) {
+        @stdio_write_line(sh, prompt);
+    }
     sh->history.index = sh->history.pos - 1;
     while (char != '\x3' && char != '\n') {
         while (FifoU8Cnt(sh->input)) {
             FifoU8Rem(sh->input, &char);
             switch (char) {
+            case '\t':
+                @stdio_read_line_autocomplete(sh, prompt, line, &pos);
+                break;
             case 3:
                 @stdio_write_line(sh, "^C");
                 break;
