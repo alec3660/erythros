@@ -147,11 +147,17 @@ U0 @stdio_read_line_autocomplete_cmd(@shell* sh, U8* str, U8* line, I64* pos)
     }
 }
 
-U0 @stdio_read_line_autocomplete_list_cmds(@shell* sh, U8* prompt, U8* str, U8* line, I64* pos)
+I64 @stdio_read_line_autocomplete_sort_cmds(U8** e1, U8** e2)
+{
+    return StrCmp(*e1, *e2);
+}
+
+U0 @stdio_read_line_autocomplete_list_cmds(@shell* sh, U8* prompt, U8* str, U8* line, I64* pos, I64 cmd_count)
 {
     I64 cnt = 0;
 
     I64 i;
+    U8** cmds = CAlloc(sizeof(U8*) * cmd_count);
     CHashSrcSym* sym;
     CHashTable* tbl = adam_task->hash_table;
     while (tbl) {
@@ -163,7 +169,7 @@ U0 @stdio_read_line_autocomplete_list_cmds(@shell* sh, U8* prompt, U8* str, U8* 
                         if (!cnt) {
                             @stdio_write_line(sh, "\n");
                         }
-                        @stdio_write_line(sh, "%s\n", sym->str + StrLen("@shell_cmd_"));
+                        cmds[cnt] = sym->str + StrLen("@shell_cmd_");
                         ++cnt;
                     }
                 }
@@ -173,8 +179,13 @@ U0 @stdio_read_line_autocomplete_list_cmds(@shell* sh, U8* prompt, U8* str, U8* 
         tbl = tbl->next;
     }
     if (cnt) {
+        QSort(cmds, cnt, sizeof(U8*), &@stdio_read_line_autocomplete_sort_cmds);
+        for (i = 0; i < cnt; i++) {
+            @stdio_write_line(sh, "%s\n", cmds[i]);
+        }
         @stdio_write_line(sh, "%s%s", prompt, line);
     }
+    Free(cmds);
 }
 
 U0 @stdio_read_line_autocomplete(@shell* sh, U8* prompt, U8* str, I64* pos)
@@ -192,7 +203,7 @@ U0 @stdio_read_line_autocomplete(@shell* sh, U8* prompt, U8* str, I64* pos)
             break;
         default:
             // TODO: if we have >1, print the list
-            @stdio_read_line_autocomplete_list_cmds(sh, prompt, ac_buf, str, pos);
+            @stdio_read_line_autocomplete_list_cmds(sh, prompt, ac_buf, str, pos, cmd_count);
             // and reprint str below it?
             break;
         }
