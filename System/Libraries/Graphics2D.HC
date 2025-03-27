@@ -1,3 +1,5 @@
+#define C2D_MAGIC 0xDEDEDEDEDEDEDEDE
+
 class @context2d
 {
     I64 width;
@@ -7,14 +9,14 @@ class @context2d
 
 class @callable_context2d : @context2d
 {
-    U0 (*blot)(I64 x, I64 y, @callable_context2d* src);
-    U0 (*blur)(I64 radius);
-    U0 (*copy_rect)(I64 x, I64 y, @callable_context2d* rect);
-    U0 (*fill)(U32 color = 0);
-    U0 (*fill_rect)(I64 x, I64 y, I64 w, I64 h, U32 color);
+    @callable_context2d* (*blot)(I64 x, I64 y, @callable_context2d* src);
+    @callable_context2d* (*blur)(I64 radius);
+    @callable_context2d* (*copy_rect)(I64 x, I64 y, @callable_context2d* rect);
+    @callable_context2d* (*fill)(U32 color = 0);
+    @callable_context2d* (*fill_rect)(I64 x, I64 y, I64 w, I64 h, U32 color);
     U32 (*peek)(I64 x, I64 y);
-    U0 (*plot)(I64 x, I64 y, U32 color);
-    U0 (*line)(I64 x1, I64 y1, I64 x2, I64 y2, U32 color);
+    @callable_context2d* (*plot)(I64 x, I64 y, U32 color);
+    @callable_context2d* (*line)(I64 x1, I64 y1, I64 x2, I64 y2, U32 color);
     @callable_context2d* (*clipped)();
     @callable_context2d* (*rotated)(F64 angle);
     @callable_context2d* (*scaled)(F64 scale_x, F64 scale_y);
@@ -1459,69 +1461,76 @@ Graphics2D.FrameBufferContext2D = &@graphics2d_get_framebuffer_context2d;
 Graphics2D.Init = &@graphics2d_init;
 Graphics2D.Flip = &@graphics2d_flip;
 
-U0 @c2d_blot_wrapper_function(I64 x, I64 y, @callable_context2d* src)
+@callable_context2d* @c2d_blot_wrapper_function(I64 x, I64 y, @callable_context2d* src)
 {
-    Context2D* dst = 0xDEDEDEDEDEDEDEDE;
+    Context2D* dst = C2D_MAGIC;
     Blot2D(dst, x, y, src);
+    return dst;
 }
 
-U0 @c2d_blur_wrapper_function(I64 radius)
+@callable_context2d* @c2d_blur_wrapper_function(I64 radius)
 {
-    Context2D* img = 0xDEDEDEDEDEDEDEDE;
+    Context2D* img = C2D_MAGIC;
     BlurInPlace(img, radius);
+    return img;
 }
 
-U0 @c2d_copy_rect_wrapper_function(I64 x, I64 y, @callable_context2d* rect)
+@callable_context2d* @c2d_copy_rect_wrapper_function(I64 x, I64 y, @callable_context2d* rect)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     CopyRect2D(ctx, x, y, rect);
+    return ctx;
 }
 
-U0 @c2d_fill_wrapper_function(U32 color = 0)
+@callable_context2d* @c2d_fill_wrapper_function(U32 color = 0)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     Fill2D(ctx, color);
+    return ctx;
 }
 
-U0 @c2d_fill_rect_wrapper_function(I64 x, I64 y, I64 w, I64 h, U32 color)
+@callable_context2d* @c2d_fill_rect_wrapper_function(I64 x, I64 y, I64 w, I64 h, U32 color)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     Rect2D(ctx, x, y, w, h, color);
+    return ctx;
 }
 
 U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     return Peek2D(ctx, x, y);
 }
 
-U0 @c2d_plot_wrapper_function(I64 x, I64 y, U32 color)
+@callable_context2d* @c2d_plot_wrapper_function(I64 x, I64 y, U32 color)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     Plot2D(ctx, x, y, color);
+    return ctx;
 }
 
-U0 @c2d_line_wrapper_function(I64 x1, I64 y1, I64 x2, I64 y2, U32 color)
+@callable_context2d* @c2d_line_wrapper_function(I64 x1, I64 y1, I64 x2, I64 y2, U32 color)
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     Line2D(ctx, x1, y1, x2, y2, color);
+    return ctx;
 }
 
 @callable_context2d* @c2d_clipped_wrapper_function()
 {
-    Context2D* ctx = 0xDEDEDEDEDEDEDEDE;
+    Context2D* ctx = C2D_MAGIC;
     return ClipToRect2D(ctx);
 }
 
 @callable_context2d* @c2d_rotated_wrapper_function(F64 angle)
 {
-    Context2D* src = 0xDEDEDEDEDEDEDEDE;
+    Context2D* src = C2D_MAGIC;
     return Rotate2D(src, angle);
 }
 
 @callable_context2d* @c2d_scaled_wrapper_function(F64 scale_x, F64 scale_y)
 {
-    Context2D* src = 0xDEDEDEDEDEDEDEDE;
+    Context2D* src = C2D_MAGIC;
     return Scale2D(src, scale_x, scale_y);
 }
 
