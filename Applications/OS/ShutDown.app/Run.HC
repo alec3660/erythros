@@ -2,24 +2,18 @@ Gui.App();
 
 U0 @shutdown_callback(U64 o)
 {
-    if (!o)
-        return;
+    Window* win = NULL;
     if (o(Window*)->signature == WIN_SIGNATURE) {
-        Compositor.DestroyWindow(o(Window*));
-        Gui.Window.SetFocus(Compositor.GetWindowByTitle("Wallpaper"));
-        return;
+        win = o;
+    } else {
+        if (o(Widget*)->tag) {
+            System.PowerOff();
+        } else {
+            win = o(Widget*)->parent_win;
+        }
     }
-    switch (o(Widget*)->tag) {
-    case TRUE:
-        System.PowerOff();
-        break;
-    default:
-        Compositor.DestroyWindow(o(Widget*)->parent_win);
-        Gui.Window.SetFocus(Compositor.GetWindowByTitle("Wallpaper"));
-        return;
-        break;
-    }
+    Compositor.DestroyWindow(win);
+    Gui.Window.SetFocus(Compositor.GetWindowByTitle("Wallpaper"));
 }
 
-MessageBox.Alert("Do you want to shut down this computer?",
-    "[\"OK\",\"Cancel\"]", &@shutdown_callback);
+MessageBox.Confirm("Do you want to shut down this computer?", &@shutdown_callback);
