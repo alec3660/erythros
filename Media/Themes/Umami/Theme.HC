@@ -1607,8 +1607,8 @@ BitmapFont* @umami_theme_bitmapfont_002 = @bitmapfont_new_from_context2d(
 BitmapFonts.Add(@umami_theme_bitmapfont_002);
 
 BitmapFont* @umami_theme_bitmapfont_003 = @bitmapfont_new_from_context2d(
-    Image.FileToContext2D("M:/Media/Themes/Umami/BitmapFont/monospace.png"),
-    "Spleen",
+    Image.FileToContext2D("M:/Media/Themes/Umami/BitmapFont/ibm3161.png"),
+    "IBM3161",
     " !\"#\d%&'()*+,-./"
     "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
     "abcdefghijklmnopqrstuvwxyz{|}~",
@@ -1618,7 +1618,7 @@ BitmapFonts.Add(@umami_theme_bitmapfont_003);
 
 Compositor.theme.font.menu = BitmapFonts.GetByName("Eight Bit Dragon");
 Compositor.theme.font.sans = BitmapFonts.GetByName("Nineteen Ninety Three");
-Compositor.theme.font.monospace = BitmapFonts.GetByName("Spleen");
+Compositor.theme.font.monospace = BitmapFonts.GetByName("IBM3161");
 
 Compositor.theme.window.min_width = 128;
 Compositor.theme.window.min_height = 128;
