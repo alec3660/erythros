@@ -1437,6 +1437,7 @@ class @graphics2d
     ();
     U0(*Flip)
     (Context2D * ctx);
+    I64 qwords;
 };
 
 @graphics2d Graphics2D;
@@ -1447,12 +1448,13 @@ U0 @graphics2d_init()
     Graphics2D.fb->width = Display.width;
     Graphics2D.fb->height = Display.height;
     Graphics2D.fb->fb = Display.fb;
+    Graphics2D.qwords = (Display.width * Display.height) / 2;
     Fill2D(Graphics2D.fb, 0x0);
 }
 
 U0 @graphics2d_flip(Context2D* ctx)
 {
-    MemCpyU32(Graphics2D.fb->fb, ctx->fb, Display.width * Display.height);
+    MemCpyU64(Graphics2D.fb->fb, ctx->fb, Graphics2D.qwords);
 }
 
 Context2D @graphics2d_get_framebuffer_context2d() { return Graphics2D.fb; }
