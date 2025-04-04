@@ -26,6 +26,7 @@ Context2D* @image_buffer_to_context2d(U8* buffer, I64 size)
     ctx->width = x;
     ctx->height = y;
     ctx->fb = pixels;
+    ctx->opacity = -1;
     I64 i;
     for (i = 0; i < x * y; i++) {
         ctx->fb(U32*)[i] = @image_pixel_flip_rgb_bgr(ctx->fb(U32*)[i]);

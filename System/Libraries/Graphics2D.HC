@@ -670,6 +670,7 @@ Context2D* NewContext2D(I64 width, I64 height,
     ctx->width = width;
     ctx->height = height;
     ctx->fb = CAlloc((width * height) * bpp / 8);
+    ctx->opacity = -1;
     return @create_callable_context2d(ctx);
 }
 
@@ -819,7 +820,7 @@ U0 Blot2D(Context2D* dst, I64 x, I64 y, Context2D* src)
             dst_col = Peek2D(dst, x + xx, y + yy);
             alpha = src_col.u8[3] / 128; // FIXME: Alpha blending not working correctly.
             plot_col = Blend2D(alpha, dst_col, src_col);
-            if (src->opacity) {
+            if (src->opacity > -1) {
                 plot_col.u8[3] = src->opacity;
             }
             Plot2D(dst, x + xx, y + yy, plot_col);
@@ -1454,6 +1455,7 @@ U0 @graphics2d_init()
     Graphics2D.fb->width = Display.width;
     Graphics2D.fb->height = Display.height;
     Graphics2D.fb->fb = Display.fb;
+    Graphics2D.fb->opacity = -1;
     Graphics2D.qwords = (Display.width * Display.height) / 2;
     Fill2D(Graphics2D.fb, 0x0);
 }
