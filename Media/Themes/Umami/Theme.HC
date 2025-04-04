@@ -41,6 +41,7 @@ Context2D* umami_widget_sb_right_button =
 U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
 {
     Context2D* ctx = win->render_ctx;
+    Context2D tmpctx;
     I64 text_offset;
     I64 text_width;
     if (!widget->color)
@@ -51,63 +52,69 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
         widget->width = Max(widget->image->width + 8, widget->width);
         widget->height = Max(widget->image->height + 8, widget->height);
     }
+    I64 color = widget->color;
+    color.u8[3] = win->opacity;
     ctx->fill_rect(x + 1, y + 1, widget->width - 2, widget->height - 2,
-        Color(232, 232, 232));
+        Color(232, 232, 232, win->opacity));
     Line2D(win->render_ctx, x + 1, y, x + widget->width - 1, y,
-        Color(96, 96, 96));
+        Color(96, 96, 96, win->opacity));
     Line2D(win->render_ctx, x + 1, y + widget->height - 1, x + widget->width - 1,
-        y + widget->height - 1, Color(96, 96, 96));
+        y + widget->height - 1, Color(96, 96, 96, win->opacity));
     Line2D(win->render_ctx, x, y + 1, x, y + widget->height - 2,
-        Color(96, 96, 96));
+        Color(96, 96, 96, win->opacity));
     Line2D(win->render_ctx, x + widget->width - 1, y + 1, x + widget->width - 1,
-        y + widget->height - 2, Color(96, 96, 96));
+        y + widget->height - 2, Color(96, 96, 96, win->opacity));
     if (widget == win->mouse_down_widget && Mouse.left &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
 
         if (widget->image) {
-            ctx->blot(x + 5, y + 5, widget->image);
+            MemCpy(&tmpctx, widget->image, sizeof(Context2D));
+            tmpctx.opacity = win->opacity;
+            ctx->blot(x + 5, y + 5, &tmpctx);
         }
 
         Line2D(win->render_ctx, x + 1, y + 1, x + widget->width - 2, y + 1,
-            Color(152, 152, 152));
+            Color(152, 152, 152, win->opacity));
         Line2D(win->render_ctx, x + 1, y + 1, x + 1, y + widget->height - 3,
-            Color(152, 152, 152));
+            Color(152, 152, 152, win->opacity));
         Line2D(win->render_ctx, x + 2, y + 2, x + widget->width - 3, y + 2,
-            Color(216, 216, 216));
+            Color(216, 216, 216, win->opacity));
         Line2D(win->render_ctx, x + 2, y + 2, x + 2, y + widget->height - 4,
-            Color(216, 216, 216));
+            Color(216, 216, 216, win->opacity));
         Line2D(win->render_ctx, x + 2, y + widget->height - 3,
-            x + widget->width - 2, y + widget->height - 3, Color(255, 255, 255));
+            x + widget->width - 2, y + widget->height - 3, Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + 3, y + widget->height - 4,
-            x + widget->width - 2, y + widget->height - 4, Color(255, 255, 255));
+            x + widget->width - 2, y + widget->height - 4, Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + widget->width - 3, y + 2, x + widget->width - 3,
-            y + widget->height - 3, Color(255, 255, 255));
+            y + widget->height - 3, Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + widget->width - 4, y + 3, x + widget->width - 4,
-            y + widget->height - 3, Color(255, 255, 255));
+            y + widget->height - 3, Color(255, 255, 255, win->opacity));
     } else {
 
         if (widget->image) {
-            ctx->blot(x + 4, y + 4, widget->image);
+            MemCpy(&tmpctx, widget->image, sizeof(Context2D));
+            tmpctx.opacity = win->opacity;
+            ctx->blot(x + 4, y + 4, &tmpctx);
         }
 
         Line2D(win->render_ctx, x + 2, y + 2, x + widget->width - 2, y + 2,
-            Color(255, 255, 255));
+            Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + 2, y + 3, x + widget->width - 3, y + 3,
-            Color(255, 255, 255));
+            Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + 2, y + 2, x + 2, y + widget->height - 3,
-            Color(255, 255, 255));
+            Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + 3, y + 2, x + 3, y + widget->height - 4,
-            Color(255, 255, 255));
+            Color(255, 255, 255, win->opacity));
         Line2D(win->render_ctx, x + 3, y + widget->height - 3,
-            x + widget->width - 3, y + widget->height - 3, Color(216, 216, 216));
+            x + widget->width - 3, y + widget->height - 3, Color(216, 216, 216, win->opacity));
         Line2D(win->render_ctx, x + widget->width - 3, y + 3, x + widget->width - 3,
-            y + widget->height - 3, Color(216, 216, 216));
+            y + widget->height - 3, Color(216, 216, 216, win->opacity));
         Line2D(win->render_ctx, x + 2, y + widget->height - 2,
-            x + widget->width - 2, y + widget->height - 2, Color(152, 152, 152));
+            x + widget->width - 2, y + widget->height - 2, Color(152, 152, 152, win->opacity));
         Line2D(win->render_ctx, x + widget->width - 2, y + 2, x + widget->width - 2,
-            y + widget->height - 2, Color(152, 152, 152));
+            y + widget->height - 2, Color(152, 152, 152, win->opacity));
     }
-    if (StrLen(&widget->text)) {
+    if (StrLen(&widget->text) && win->opacity > 0) {
         text_offset = T(widget == win->mouse_down_widget && Mouse.left &&
                 @widget_is_hovered(win->x + x, win->y + y, widget),
             1, 0);
@@ -115,29 +122,32 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
         PutS2D(win->render_ctx, widget->font,
             x + text_offset + (widget->width / 2) - (text_width / 2),
             y + text_offset + (widget->height / 2) - (widget->font->line_height / 2),
-            widget->color, , &widget->text);
+            color, , &widget->text);
     }
 }
 
 U0 @umami_checkbox_repaint(Window* win, CheckBoxWidget* widget, I64 x, I64 y)
 {
+    Context2D tmpctx;
     Context2D* ctx = win->render_ctx;
     if (widget == win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
-        ctx->blot(x, y,
-            T(widget->checked, umami_widget_checkbox_checked_active,
-                umami_widget_checkbox_active));
+        MemCpy(&tmpctx, T(widget->checked, umami_widget_checkbox_checked_active, umami_widget_checkbox_active), sizeof(Context2D));
+        tmpctx.opacity = win->opacity;
+        ctx->blot(x, y, &tmpctx);
         return;
     }
     if (widget == win->mouse_down_widget->echo && widget != win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, win->mouse_down_widget)) {
-        ctx->blot(x, y,
-            T(widget->checked, umami_widget_checkbox_checked_active,
-                umami_widget_checkbox_active));
+        MemCpy(&tmpctx, T(widget->checked, umami_widget_checkbox_checked_active, umami_widget_checkbox_active), sizeof(Context2D));
+        tmpctx.opacity = win->opacity;
+        ctx->blot(x, y, &tmpctx);
         return;
     }
-    ctx->blot(x, y,
-        T(widget->checked, umami_widget_checkbox_checked, umami_widget_checkbox));
+    MemCpy(&tmpctx,
+        T(widget->checked, umami_widget_checkbox_checked, umami_widget_checkbox), sizeof(Context2D));
+    tmpctx.opacity = win->opacity;
+    ctx->blot(x, y, &tmpctx);
 }
 
 U0 @umami_terminal_calculate_size(Window* win, TerminalWidget* widget)
@@ -791,24 +801,24 @@ U0 @umami_input_repaint(Window* win, I64 event,
     ch[1] = NULL;
     widget->height = widget->font->line_height + 6;
 
-    HLine2D(win->render_ctx, x, y, x + widget->width, Color(156, 156, 156));
-    VLine2D(win->render_ctx, x, y, y + widget->height, Color(156, 156, 156));
+    HLine2D(win->render_ctx, x, y, x + widget->width, Color(156, 156, 156, win->opacity));
+    VLine2D(win->render_ctx, x, y, y + widget->height, Color(156, 156, 156, win->opacity));
     HLine2D(win->render_ctx, x + 1, y + widget->height, x + widget->width,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     VLine2D(win->render_ctx, x + widget->width, y + 1, y + widget->height,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     ctx->fill_rect(x + 1, y + 1, widget->width - 1, widget->height - 1,
-        Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
 
     if (widget == win->focused_widget) {
         HLine2D(win->render_ctx, x + 1, y + 1, x + widget->width - 1,
-            Color(0, 0, 0));
+            Color(0, 0, 0, win->opacity));
         VLine2D(win->render_ctx, x + 1, y + 1, y + widget->height - 2,
-            Color(0, 0, 0));
+            Color(0, 0, 0, win->opacity));
         HLine2D(win->render_ctx, x + 1, y + widget->height - 1,
-            x + widget->width - 1, Color(0, 0, 0));
+            x + widget->width - 1, Color(0, 0, 0, win->opacity));
         VLine2D(win->render_ctx, x + widget->width - 1, y + 1,
-            y + widget->height - 1, Color(0, 0, 0));
+            y + widget->height - 1, Color(0, 0, 0, win->opacity));
     } else {
         widget->in_drag = FALSE;
     }
@@ -819,6 +829,7 @@ U0 @umami_input_repaint(Window* win, I64 event,
     }
 
     Context2D* text_input_ctx = NewContext2D(widget->width - 4, widget->height);
+    text_input_ctx->opacity = win->opacity;
 
     if (widget->is_password) {
         StrCpy(widget->password, widget->text);
@@ -891,10 +902,12 @@ U0 @umami_input_repaint(Window* win, I64 event,
 U0 @umami_label_repaint(Window* win, BitmapFontTextLabelWidget* widget, I64 x,
     I64 y)
 {
+    I64 color = widget->color;
+    color.u8[3] = win->opacity;
     if (!widget->font)
         widget->font = Compositor.theme.font.sans;
-    if (widget->text)
-        PutS2D(win->render_ctx, widget->font, x, y, widget->color, -1,
+    if (widget->text && win->opacity > 0)
+        PutS2D(win->render_ctx, widget->font, x, y, color, -1,
             widget->text);
 }
 
@@ -944,22 +957,27 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
 U0 @umami_radio_repaint(Window* win, RadioButtonWidget* widget, I64 x, I64 y)
 {
     Context2D* ctx = win->render_ctx;
+    Context2D tmpctx;
     if (widget == win->mouse_down_widget &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
-        ctx->blot(x, y,
+        MemCpy(&tmpctx,
             T(widget->selected, umami_widget_radio_selected,
-                umami_widget_radio_active));
+                umami_widget_radio_active),
+            sizeof(Context2D));
+        tmpctx.opacity = win->opacity;
+        ctx->blot(x, y, &tmpctx);
         return;
     }
     if (widget == win->mouse_down_widget->echo && widget != win->mouse_down_widget && !widget->selected &&
         @widget_is_hovered(win->x + x, win->y + y, win->mouse_down_widget)) {
-        ctx->blot(x, y,
-            T(win->mouse_down_widget(RadioButtonWidget*)->selected,
-                umami_widget_radio_selected, umami_widget_radio_active));
+        MemCpy(&tmpctx, T(win->mouse_down_widget(RadioButtonWidget*)->selected, umami_widget_radio_selected, umami_widget_radio_active), sizeof(Context2D));
+        tmpctx.opacity = win->opacity;
+        ctx->blot(x, y, &tmpctx);
         return;
     }
-    ctx->blot(x, y,
-        T(widget->selected, umami_widget_radio_selected, umami_widget_radio));
+    MemCpy(&tmpctx, T(widget->selected, umami_widget_radio_selected, umami_widget_radio), sizeof(Context2D));
+    tmpctx.opacity = win->opacity;
+    ctx->blot(x, y, &tmpctx);
 }
 
 U0 @umami_radio_select(Window* win, RadioButtonWidget* widget)
@@ -994,6 +1012,7 @@ U0 @umami_horz_slider_repaint(Window* win, I64 event,
     HorizontalSliderWidget* widget, I64 x, I64 y)
 {
     Context2D* ctx = win->render_ctx;
+    Context2D tmpctx;
     I64 scroll = widget->scroll;
     widget->height = 12;
     if (widget->in_drag &&
@@ -1004,7 +1023,7 @@ U0 @umami_horz_slider_repaint(Window* win, I64 event,
         }
     }
 
-    ctx->fill_rect(x, y + 5, widget->width, 4, Color(156, 156, 156));
+    ctx->fill_rect(x, y + 5, widget->width, 4, Color(156, 156, 156, win->opacity));
     if (@umami_horz_slider_is_hovered(win, widget, x, y, widget->scroll) && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
         win->mouse_down_widget = widget;
         widget->origin.mouse_x = Mouse.x;
@@ -1028,29 +1047,30 @@ U0 @umami_horz_slider_repaint(Window* win, I64 event,
     if (!Mouse.left)
         widget->in_drag = FALSE;
 
-    HLine2D(win->render_ctx, x, y + 1, x + widget->width, Color(190, 190, 190));
-    HLine2D(win->render_ctx, x + 1, y + 4, x + widget->width, Color(0, 0, 0));
-    VLine2D(win->render_ctx, x + 1, y + 4, y + 8, Color(0, 0, 0));
-    VLine2D(win->render_ctx, x, y + 4, y + 9, Color(190, 190, 190));
-    HLine2D(win->render_ctx, x, y + 9, x + widget->width, Color(255, 255, 255));
+    HLine2D(win->render_ctx, x, y + 1, x + widget->width, Color(190, 190, 190, win->opacity));
+    HLine2D(win->render_ctx, x + 1, y + 4, x + widget->width, Color(0, 0, 0, win->opacity));
+    VLine2D(win->render_ctx, x + 1, y + 4, y + 8, Color(0, 0, 0, win->opacity));
+    VLine2D(win->render_ctx, x, y + 4, y + 9, Color(190, 190, 190, win->opacity));
+    HLine2D(win->render_ctx, x, y + 9, x + widget->width, Color(255, 255, 255, win->opacity));
     VLine2D(win->render_ctx, x + widget->width, y + 4, y + 9,
-        Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
 
-    VLine2D(win->render_ctx, x, y + 11, y + 16, Color(190, 190, 190));
-    VLine2D(win->render_ctx, x + 1, y + 11, y + 16, Color(255, 255, 255));
+    VLine2D(win->render_ctx, x, y + 11, y + 16, Color(190, 190, 190, win->opacity));
+    VLine2D(win->render_ctx, x + 1, y + 11, y + 16, Color(255, 255, 255, win->opacity));
 
     VLine2D(win->render_ctx, x + (widget->width / 2) - 1, y + 11, y + 16,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     VLine2D(win->render_ctx, x + (widget->width / 2), y + 11, y + 16,
-        Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
 
     VLine2D(win->render_ctx, x + widget->width - 1, y + 11, y + 16,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     VLine2D(win->render_ctx, x + widget->width, y + 11, y + 16,
-        Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
 
-    ctx->blot((x - 7) + widget->scroll, y,
-        umami_widget_horz_slider);
+    MemCpy(&tmpctx, umami_widget_horz_slider, sizeof(Context2D));
+    tmpctx.opacity = win->opacity;
+    ctx->blot((x - 7) + widget->scroll, y, &tmpctx);
 
     if (widget->scroll != scroll)
         widget->change = TRUE;
@@ -1076,6 +1096,7 @@ U0 @umami_vert_slider_repaint(Window* win, I64 event,
     VerticalSliderWidget* widget, I64 x, I64 y)
 {
     Context2D* ctx = win->render_ctx;
+    Context2D tmpctx;
     I64 scroll = widget->scroll;
     widget->width = 12;
     if (widget->in_drag &&
@@ -1085,7 +1106,7 @@ U0 @umami_vert_slider_repaint(Window* win, I64 event,
             widget->origin.mouse_y = Mouse.y;
         }
     }
-    ctx->fill_rect(x + 5, y, 4, widget->height, Color(156, 156, 156));
+    ctx->fill_rect(x + 5, y, 4, widget->height, Color(156, 156, 156, win->opacity));
     if (@umami_horz_slider_is_hovered(win, widget, x, y, widget->scroll) && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
         win->mouse_down_widget = widget;
         widget->origin.mouse_y = Mouse.y;
@@ -1105,24 +1126,26 @@ U0 @umami_vert_slider_repaint(Window* win, I64 event,
     widget->value = ToI64((widget->max * 1.0) / (widget->height * 1.0) * (widget->scroll * 1.0));
     if (!Mouse.left)
         widget->in_drag = FALSE;
-    VLine2D(win->render_ctx, x + 1, y, y + widget->height, Color(190, 190, 190));
-    VLine2D(win->render_ctx, x + 4, y + 1, y + widget->height, Color(0, 0, 0));
-    HLine2D(win->render_ctx, x + 4, y, x + 9, Color(0, 0, 0));
-    VLine2D(win->render_ctx, x + 9, y, y + widget->height, Color(255, 255, 255));
+    VLine2D(win->render_ctx, x + 1, y, y + widget->height, Color(190, 190, 190, win->opacity));
+    VLine2D(win->render_ctx, x + 4, y + 1, y + widget->height, Color(0, 0, 0, win->opacity));
+    HLine2D(win->render_ctx, x + 4, y, x + 9, Color(0, 0, 0, win->opacity));
+    VLine2D(win->render_ctx, x + 9, y, y + widget->height, Color(255, 255, 255, win->opacity));
     HLine2D(win->render_ctx, x + 4, y + widget->height, x + 9,
-        Color(255, 255, 255));
-    HLine2D(win->render_ctx, x + 11, y, x + 16, Color(190, 190, 190));
-    HLine2D(win->render_ctx, x + 11, y + 1, x + 16, Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
+    HLine2D(win->render_ctx, x + 11, y, x + 16, Color(190, 190, 190, win->opacity));
+    HLine2D(win->render_ctx, x + 11, y + 1, x + 16, Color(255, 255, 255, win->opacity));
     HLine2D(win->render_ctx, x + 11, y + (widget->height / 2) - 1, x + 16,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     HLine2D(win->render_ctx, x + 11, y + (widget->height / 2), x + 16,
-        Color(255, 255, 255));
+        Color(255, 255, 255, win->opacity));
     HLine2D(win->render_ctx, x + 11, y + widget->height - 1, x + 16,
-        Color(190, 190, 190));
+        Color(190, 190, 190, win->opacity));
     HLine2D(win->render_ctx, x + 11, y + widget->height, x + 16,
-        Color(255, 255, 255));
-    ctx->blot(x, (y - 7) + widget->scroll,
-        umami_widget_vert_slider);
+        Color(255, 255, 255, win->opacity));
+
+    MemCpy(&tmpctx, umami_widget_vert_slider, sizeof(Context2D));
+    tmpctx.opacity = win->opacity;
+    ctx->blot(x, (y - 7) + widget->scroll, &tmpctx);
 
     if (widget->scroll != scroll)
         widget->change = TRUE;
@@ -1378,6 +1401,7 @@ U0 @umami_window_repaint(Window* win, I64 event)
 
     win->repainting = TRUE;
     Context2D* ctx = win->render_ctx;
+    Context2D tmpctx;
 
     win->render_ctx->width = win->width;
     win->render_ctx->height = win->height;
@@ -1436,10 +1460,13 @@ U0 @umami_window_repaint(Window* win, I64 event)
         title_bar_width = win->width - 8;
 
         if (@gui_window_flag_is_set(win, WIN_FLAGS_ICON)) {
-            if (win->icon)
-                ctx->blot(4, 4, win->icon);
-            else
-                ctx->blot(4, 4, umami_default_icon);
+            if (win->icon) {
+                MemCpy(&tmpctx, win->icon, sizeof(Context2D));
+            } else {
+                MemCpy(&tmpctx, umami_default_icon, sizeof(Context2D));
+            }
+            tmpctx.opacity = win->opacity;
+            ctx->blot(4, 4, &tmpctx);
             title_bar_x = 24;
             title_bar_width -= 20;
         }
@@ -1460,8 +1487,9 @@ U0 @umami_window_repaint(Window* win, I64 event)
                             win->callback.close(win);
                     } else
                         CopyRect2D(umami_title_bar_button, -32, -1, umami_min_max_close);
-                    CopyRect2D(win->render_ctx, window_button_x, 5,
-                        umami_title_bar_button);
+                    MemCpy(&tmpctx, umami_title_bar_button, sizeof(Context2D));
+                    tmpctx.opacity = win->opacity;
+                    win->render_ctx->blot(window_button_x, 5, &tmpctx);
                 }
                 if (win->left_btn_down.x > window_button_x && win->left_btn_down.x < window_button_x + 16 && win->left_btn_down.y > 5 && win->left_btn_down.y < 21 && Mouse.left && !win->button.close) {
                     win->button.close = TRUE;
@@ -1481,8 +1509,9 @@ U0 @umami_window_repaint(Window* win, I64 event)
 
                     else
                         CopyRect2D(umami_title_bar_button, -16, -1, umami_min_max_close);
-                    CopyRect2D(win->render_ctx, window_button_x, 5,
-                        umami_title_bar_button);
+                    MemCpy(&tmpctx, umami_title_bar_button, sizeof(Context2D));
+                    tmpctx.opacity = win->opacity;
+                    win->render_ctx->blot(window_button_x, 5, &tmpctx);
                 }
                 if (win->left_btn_down.x > window_button_x && win->left_btn_down.x < window_button_x + 16 && win->left_btn_down.y > 5 && win->left_btn_down.y < 21 && Mouse.left && !win->button.maximize) {
                     win->button.maximize = TRUE;
@@ -1500,8 +1529,9 @@ U0 @umami_window_repaint(Window* win, I64 event)
                             win->callback.minimize(win);
                     } else
                         CopyRect2D(umami_title_bar_button, 0, -1, umami_min_max_close);
-                    CopyRect2D(win->render_ctx, window_button_x, 5,
-                        umami_title_bar_button);
+                    MemCpy(&tmpctx, umami_title_bar_button, sizeof(Context2D));
+                    tmpctx.opacity = win->opacity;
+                    win->render_ctx->blot(window_button_x, 5, &tmpctx);
                 }
                 if (win->left_btn_down.x > window_button_x && win->left_btn_down.x < window_button_x + 16 && win->left_btn_down.y > 5 && win->left_btn_down.y < 21 && Mouse.left && !win->button.minimize) {
                     win->button.minimize = TRUE;
@@ -1569,9 +1599,11 @@ U0 @umami_window_repaint(Window* win, I64 event)
             title_bar_y + title_bar_height - 1,
             Color(255, 255, 255, win->opacity));
 
-        if (@gui_window_flag_is_set(win, WIN_FLAGS_RESIZABLE))
-            ctx->blot(win->width - 16, win->height - 16,
-                umami_corner_resize);
+        if (@gui_window_flag_is_set(win, WIN_FLAGS_RESIZABLE)) {
+            MemCpy(&tmpctx, umami_corner_resize, sizeof(Context2D));
+            tmpctx.opacity = win->opacity;
+            ctx->blot(win->width - 16, win->height - 16, &tmpctx);
+        }
     }
 
     win->backing_store->width = win->render_ctx->width;
