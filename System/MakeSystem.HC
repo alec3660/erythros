@@ -28,6 +28,10 @@ WinToTop(adam_task);
 #include "Utilities/Image";
 load_elf("M:/build/bin/image");
 
+// stb_truetype library
+#include "Utilities/TrueType";
+load_elf("M:/build/bin/truetype");
+
 // Jakt support files
 #include "Jakt/OS";
 #include "Jakt/IOPort";

@@ -33,7 +33,7 @@ qemu_run_cmd = qemu_bin_path + ' ' + qemu_display + ' -enable-kvm -smp cores=4 -
 
 def clang_format_src_files():
     print("build-all: clang-format-src-files")
-    exclude_paths = ["stb_", "tlse", ".iso.c"]
+    exclude_paths = ["stb_", "openlibm", "tlse", ".iso.c"]
     format_file_extensions = [".c", ".cpp", ".h", ".hc"]
     for src_file in glob.glob(project_path + "**", recursive=True):
         exclude_file = False
@@ -62,11 +62,24 @@ def build_image():
     if res:
         raise ValueError("build-all: step 'build-image' failed, error code " + str(res))
 
+def build_truetype():
+    print("build-all: build-truetype")
+    build_specific_options = '-Wl,--section-start=.text=0x1104000 -Wl,--section-start=.plt=0x1102020 -no-pie'
+    res = os.system('cd ' + project_path + '&& cd src/truetype && gcc -o ../../build/bin/truetype ' + build_specific_options + ' -O0 -mno-mmx -mno-red-zone truetype.c ../openlibm/libopenlibm.a')
+    if res:
+        raise ValueError("build-all: step 'build-image' failed, error code " + str(res))
+
 def build_libtemple():
     print("build-all: build-libtemple")
     res = os.system('cd ' + project_path + 'src/libtemple && g++ -c -o ../../build/libtemple.o libtemple.cpp && gcc -shared -o ../../build/lib/libtemple.so ../../build/libtemple.o && rm ' + project_path + 'build/libtemple.o')
     if res:
         raise ValueError("build-all: step 'build-libtemple' failed, error code " + str(res))
+
+def build_openlibm():
+    print("build-all: build-openlibm")
+    res = os.system('cd ' + project_path + 'src/openlibm && make clean && make ARCH=amd64')
+    if res:
+        raise ValueError("build-all: step 'build-openlibm' failed, error code " + str(res))
 
 def build_tlse():
     print("build-all: build-tlse")
@@ -94,6 +107,10 @@ def address_string_for_symbol(file, symbol):
 
 def image_hc_fixup(macro, symbol, image_bin_path, image_hc_path):
     os.system('echo -e "#define ' + macro + ' ' + address_string_for_symbol(image_bin_path, symbol) + '\n" | cat - ' + image_hc_path + ' | sponge ' + image_hc_path)
+    return
+
+def truetype_hc_fixup(macro, symbol, truetype_bin_path, truetype_hc_path):
+    os.system('echo -e "#define ' + macro + ' ' + address_string_for_symbol(truetype_bin_path, symbol) + '\n" | cat - ' + truetype_hc_path + ' | sponge ' + truetype_hc_path)
     return
 
 def tlse_hc_fixup(macro, symbol, tlse_bin_path, tlse_hc_path):
@@ -138,6 +155,13 @@ def generate_iso_c_file():
     image_hc_fixup('STBI_FAILURE_REASON', 'stbi_failure_reason', image_bin_path, image_hc_path)
     image_hc_fixup('RENDER_4BIT_FLOYDSTEIN', 'render_4bit_floydstein', image_bin_path, image_hc_path)
 
+    # Fixup addresses for TrueType.HC
+    truetype_bin_path = redsea_path + '/build/bin/truetype'
+    truetype_hc_path = redsea_path + '/System/Utilities/TrueType.HC'
+
+    truetype_hc_fixup('STBTT_INITFONT', 'stbtt_InitFont', truetype_bin_path, truetype_hc_path)
+    truetype_hc_fixup('STBTT_RENDERTEXT', 'stbtt_RenderText', truetype_bin_path, truetype_hc_path)
+
     # Fixup addresses for Tlse.HC
 
     rsa_hc_path = redsea_path + '/System/Libraries/Rsa.HC'
@@ -180,6 +204,8 @@ def build_all():
     clang_format_src_files()
     refresh_build_path()
     build_image()
+    build_openlibm()
+    build_truetype()
     build_libtemple()
     build_tlse()
     transpile_net_to_sepples()
