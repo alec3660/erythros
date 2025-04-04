@@ -5,6 +5,7 @@ class @context2d
     I64 width;
     I64 height;
     U32* fb;
+    I64 opacity;
 };
 
 class @callable_context2d : @context2d
@@ -811,12 +812,17 @@ U0 Blot2D(Context2D* dst, I64 x, I64 y, Context2D* src)
     I64 xx, yy;
     I64 src_col, dst_col;
     F64 alpha;
+    I64 plot_col;
     for (yy = 0; yy < src->height; yy++) {
         for (xx = 0; xx < src->width; xx++) {
             src_col = Peek2D(src, xx, yy);
             dst_col = Peek2D(dst, x + xx, y + yy);
             alpha = src_col.u8[3] / 128; // FIXME: Alpha blending not working correctly.
-            Plot2D(dst, x + xx, y + yy, Blend2D(alpha, dst_col, src_col));
+            plot_col = Blend2D(alpha, dst_col, src_col);
+            if (src->opacity) {
+                plot_col.u8[3] = src->opacity;
+            }
+            Plot2D(dst, x + xx, y + yy, plot_col);
         }
     }
 }
