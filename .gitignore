@@ -1,3 +1,10 @@
 build/
 reports/
 src/net/exports/
+src/openlibm/*.o
+src/openlibm/*~
+src/openlibm/*.a
+src/openlibm/*.dll*
+src/openlibm/*.so*
+src/openlibm/*.dylib*
+src/openlibm/*.pc
