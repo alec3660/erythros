@@ -163,6 +163,7 @@ sys_code_bp->mem_free_lst = ShrinkMemBlkByPags(sys_code_bp->mem_free_lst, 131072
 
 // 3. Enable SSE
 @sse_enable;
+@sse_enable_on_all_cores;
 
 // 4. Init mem_tasks
 
