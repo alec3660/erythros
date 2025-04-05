@@ -161,6 +161,7 @@ def generate_iso_c_file():
 
     truetype_hc_fixup('STBTT_INITFONT', 'stbtt_InitFont', truetype_bin_path, truetype_hc_path)
     truetype_hc_fixup('STBTT_RENDERTEXT', 'stbtt_RenderText', truetype_bin_path, truetype_hc_path)
+    truetype_hc_fixup('STBTT_GETFONTNAMEDEFAULT', 'stbtt_GetFontNameDefault', truetype_bin_path, truetype_hc_path)
 
     # Fixup addresses for Tlse.HC
 

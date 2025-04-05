@@ -47,4 +47,15 @@ U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, U8* word)
     }
 }
 
+U8* @stbtt_GetFontNameDefault(stbtt_fontinfo* font, I32* length)
+{
+    U64 reg RDI rdi = font;
+    U64 reg RSI rsi = length;
+    no_warn rdi, rsi;
+    asm {
+        MOV RAX, STBTT_GETFONTNAMEDEFAULT
+        CALL RAX
+    }
+}
+
 "truetype ";
