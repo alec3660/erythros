@@ -1,3 +1,26 @@
+U0 @truetype_init_fonts()
+{
+    CDirEntry* font_files = FilesFind("M:/Fonts/*.ttf");
+    CDirEntry* de = font_files;
+    stbtt_fontinfo* info;
+    U8 name_buffer[512];
+    U8* name_ptr;
+    I32 length;
+    while (de) {
+        info = CAlloc(sizeof(stbtt_fontinfo), adam_task);
+        if (@stbtt_InitFont(info, FileRead(de->full_name), 0)) {
+            MemSet(name_buffer, NULL, 512);
+            name_ptr = @stbtt_GetFontNameDefault(info, &length);
+            MemCpy(name_buffer, name_ptr, length);
+            Fonts->set(name_buffer, info, JSON_NUMBER);
+        }
+        de = de->next;
+    }
+    DirTreeDel(font_files);
+}
+
+@truetype_init_fonts;
+
 #define CPZ_MSG_WIN_CREATE 0x1001
 #define CPZ_MSG_WIN_DESTROY 0x1002
 #define CPZ_MSG_WIN_REPAINT 0x1003
