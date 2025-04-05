@@ -1,3 +1,5 @@
+JsonObject* Fonts = Json.CreateObject(adam_task);
+
 #define C2D_MAGIC 0xDEDEDEDEDEDEDEDE
 
 class @context2d
@@ -1124,8 +1126,9 @@ I64 Print2D(Context2D* ctx, BitmapFont* font, I64 x, I64 y,
     return retval;
 }
 
-U0 Text2D(Context2D* ctx, stbtt_fontinfo* font, I64 x, I64 y, I64 size, U32 color, U8* text)
+U0 Text2D(Context2D* ctx, U8* font_name, I64 x, I64 y, I64 size, U32 color, U8* text)
 {
+    stbtt_fontinfo* font = Fonts->@(font_name);
     if (!ctx || !ctx->width || !ctx->height || !font || !size || !text || !StrLen(text)) {
         return;
     }
