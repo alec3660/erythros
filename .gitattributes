@@ -1,2 +1,4 @@
 src/image/** linguist-vendored
+src/openlibm/** linguist-vendored
 src/tlse/** linguist-vendored
+src/truetype/** linguist-vendored
