@@ -1,3 +1,5 @@
+Silent(1); // This is needed to suppress "Function should return val" warnings for wrappers to non-HolyC functions
+
 class stbtt__buf {
     U8* data;
     I32 cursor;
@@ -57,5 +59,7 @@ U8* @stbtt_GetFontNameDefault(stbtt_fontinfo* font, I32* length)
         CALL RAX
     }
 }
+
+Silent(0);
 
 "truetype ";
