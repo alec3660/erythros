@@ -18,6 +18,7 @@ class @callable_context2d : @context2d
     U32 (*peek)(I64 x, I64 y);
     @callable_context2d* (*plot)(I64 x, I64 y, U32 color);
     @callable_context2d* (*line)(I64 x1, I64 y1, I64 x2, I64 y2, U32 color);
+    @callable_context2d* (*text)(U64 font, I64 x, I64 y, I64 size, U32 color, U8* text);
     @callable_context2d* (*clipped)();
     @callable_context2d* (*rotated)(F64 angle);
     @callable_context2d* (*scaled)(F64 scale_x, F64 scale_y);
@@ -1123,6 +1124,30 @@ I64 Print2D(Context2D* ctx, BitmapFont* font, I64 x, I64 y,
     return retval;
 }
 
+U0 Text2D(Context2D* ctx, stbtt_fontinfo* font, I64 x, I64 y, I64 size, U32 color, U8* text)
+{
+    if (!ctx || !ctx->width || !ctx->height || !font || !size || !text || !StrLen(text)) {
+        return;
+    }
+    Context2D* text_ctx = NewContext2D(ctx->width, ctx->height);
+    CDC* dc = DCNew(ctx->width, ctx->height);
+    Free(dc->body);
+    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.5), text);
+    I64 text_x, text_y, text_c;
+    for (text_y = 0; text_y < dc->height; text_y++) {
+        for (text_x = 0; text_x < dc->width; text_x++) {
+            text_c = GrPeek(dc, text_x, text_y);
+            if (text_c) {
+                color.u8[3] = text_c;
+                text_ctx->plot(x + text_x, y + text_y, color);
+            }
+        }
+    }
+    BlendRect2D(text_ctx, ctx);
+    DelContext2D(text_ctx);
+    DCDel(dc);
+}
+
 Context2D* FastBoxBlur2D(Context2D* img, I64 radius)
 {
     /*
@@ -1526,6 +1551,13 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
     return ctx;
 }
 
+@callable_context2d* @c2d_text_wrapper_function(U64 font, I64 x, I64 y, I64 size, U32 color, U8* text)
+{
+    Context2D* ctx = C2D_MAGIC;
+    Text2D(ctx, font, x, y, size, color, text);
+    return ctx;
+}
+
 @callable_context2d* @c2d_clipped_wrapper_function()
 {
     Context2D* ctx = C2D_MAGIC;
@@ -1656,6 +1688,19 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
     a = res->line;
     a += 0x3a;
     @patch_call_rel32(a, &Line2D);
+
+    // text
+    code_size = MSize(&@c2d_text_wrapper_function);
+    res->text = CAlloc(code_size, Fs->code_heap);
+    MemCpy(res->text, &@c2d_text_wrapper_function, code_size);
+
+    a = res->text;
+    a += 0x2e;
+    MemSetI64(a, res, 1);
+
+    a = res->text;
+    a += 0x42;
+    @patch_call_rel32(a, &Text2D);
 
     // clipped
     code_size = MSize(&@c2d_clipped_wrapper_function);
