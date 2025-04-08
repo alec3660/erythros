@@ -60,7 +60,8 @@ U0 @system_log(CTask* task, U8* fmt, ...)
         MemCpyU32(&task->pad, &color, 1);
     }
     U8* log_msg = MAlloc(1024);
-    StrPrint(log_msg, "[\x1b[38;2;%d;%d;%dm%16s\x1b[0m] %s\n",
+    StrPrint(log_msg, "[%d][\x1b[38;2;%d;%d;%dm%16s\x1b[0m] %s\n",
+        SysTimerRead,
         color.u8[3] << 5 & 0xFF, color.u8[2] << 4 & 0xFF,
         color.u8[1] << 3 & 0xFF, Fs->task_name, buf);
     FifoI64Ins(System.log_fifo, log_msg);
