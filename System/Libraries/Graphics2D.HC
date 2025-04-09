@@ -1126,6 +1126,57 @@ I64 Print2D(Context2D* ctx, BitmapFont* font, I64 x, I64 y,
     return retval;
 }
 
+I64 X1Pos(CDC* src)
+{
+    I64 x = 0;
+    I64 y = 0;
+    I64 color;
+    while (x < src->width) {
+        y = 0;
+        while (y < src->height) {
+            color = GrPeek(src, x, y);
+            if (color)
+                return x;
+            y++;
+        }
+        x++;
+    }
+    return -1;
+}
+
+I64 X2Pos(CDC* src)
+{
+    I64 x = src->width - 1;
+    I64 y = src->height - 1;
+    I64 color;
+    while (x > -1) {
+        y = src->height - 1;
+        while (y > -1) {
+            color = GrPeek(src, x, y);
+            if (color)
+                return x;
+            y--;
+        }
+        x--;
+    }
+    return -1;
+}
+
+I64 @get_truetype_text_width(U8* font_name, I64 size, U8* text)
+{
+    stbtt_fontinfo* font = Fonts->@(font_name);
+    if (!font) {
+        return 0;
+    }
+    I64 res = 0;
+    CDC* dc = DCNew(Display.Width(), (size * 2));
+    Free(dc->body);
+    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.5), text);
+    res = X2Pos(dc) - X1Pos(dc);
+    DCDel(dc);
+    return res;
+}
+
 U0 Text2D(Context2D* ctx, U8* font_name, I64 x, I64 y, I64 size, U32 color, U8* text)
 {
     stbtt_fontinfo* font = Fonts->@(font_name);
