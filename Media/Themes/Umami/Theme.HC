@@ -1245,16 +1245,22 @@ U0 @umami_vert_scrollbar_repaint(Window* win, I64 event,
         widget->change = TRUE;
 }
 
-U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
+U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
 {
+    I64 title_bar_height = 0;
+    if (@gui_window_flag_is_set(win, WIN_FLAGS_TITLE_BAR)) {
+        title_bar_height = 17;
+    }
+    I64 x, y;
+
+    I64 origin_x = 4;
+    I64 origin_y = 4;
+    if (title_bar_height)
+        origin_y = 7 + title_bar_height;
+
     @window_widgets_list* widgets_list;
     Widget* widget;
-    Context2D* ctx;
-    Bool widget_is_hovered;
-    I64 x, y;
-    F64 ttf_point_to_size;
-    no_warn ctx;
-    no_warn ttf_point_to_size;
+    Bool widget_is_hovered = FALSE;
 
     if (event == CPZ_MSG_WIN_LEFT_BTN_DOWN)
         win->focused_widget = NULL;
@@ -1320,6 +1326,18 @@ U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
         }
         win->mouse_down_widget = NULL;
     }
+}
+
+U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
+{
+    @window_widgets_list* widgets_list;
+    Widget* widget;
+    Context2D* ctx;
+    // Bool widget_is_hovered;
+    I64 x, y;
+    F64 ttf_point_to_size;
+    no_warn ctx;
+    no_warn ttf_point_to_size;
 
     widgets_list = win->widget;
     while (widgets_list) {
