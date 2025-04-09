@@ -24,6 +24,8 @@ U0 @calc_keypress_callback(Window*, I64 key)
 {
     if (win != Compositor.active_win)
         return;
+    if (win->focused_widget == result)
+        return;
     U8* res_text = result->text;
     switch (ScanCode2Char(key)) {
     case '0' ... '9':
