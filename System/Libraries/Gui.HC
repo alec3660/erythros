@@ -124,6 +124,7 @@ class Window {
     Bool alpha;
     Bool refresh;
     Bool repainting;
+    Bool explicit_repaint;
     CTask* client;
     I64 x;
     I64 y;
