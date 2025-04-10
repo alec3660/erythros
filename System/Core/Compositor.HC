@@ -1055,8 +1055,8 @@ U0 @compositor_task()
         // Debug stuff
         I64 debug_row;
 
-        if (1 == 2) {
-            debug_row = 2;
+        if (KeyDown(SC_F12)) {
+            debug_row = 32;
 
             total_mem = sys_code_bp->alloced_u8s;
             if (sys_data_bp) {
@@ -1100,6 +1100,8 @@ U0 @compositor_task()
                     "      title  : %s", Compositor.active_win->title);
                 ConsolePrint2D(Compositor.ctx, 08 * 03, 16 * debug_row++, , ,
                     "      flags  : %016b", Compositor.active_win->flags);
+                ConsolePrint2D(Compositor.ctx, 08 * 03, 16 * debug_row++, , ,
+                    "      opacity  : %d", Compositor.active_win->opacity);
             }
         }
 
