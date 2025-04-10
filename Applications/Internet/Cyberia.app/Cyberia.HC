@@ -307,8 +307,20 @@ U0 @cyberia_unset_status_text()
     previous_hovered_href = NULL;
 }
 
+U0 @cyberia_addressbar_clicked(Widget*)
+{
+    if (StrLen(&addressbar1->text) && addressbar1->selected_region_start == -1 && addressbar1->selected_region_end == -1) {
+        addressbar1->selected_region_start = 0;
+        addressbar1->selected_region_end = StrLen(&addressbar1->text) - 1;
+    }
+}
+
 U0 @cyberia_win_mouseat(Window*)
 {
+    if (addressbar1 && win->focused_widget != addressbar1) {
+        addressbar1->selected_region_start = -1;
+        addressbar1->selected_region_end = -1;
+    }
 
     if (!win->hovered_widget || !win->hovered_widget->pointer) {
         @cyberia_unset_status_text;
@@ -388,6 +400,7 @@ U0 @cyberia_init()
 
     addressbar1 = Gui.CreateWidget(win, WIDGET_TYPE_INPUT, 99, 6, 320, 16);
     Gui.Widget.SetFont(addressbar1, "Eight Bit Dragon");
+    Gui.Widget.SetCallback(addressbar1, "clicked", &@cyberia_addressbar_clicked);
     Gui.Window.SetCallback(win, "keypress", &@cyberia_win_keypress);
     widgets_base = win->widget;
 
