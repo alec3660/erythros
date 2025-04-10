@@ -20,6 +20,7 @@ TextInputWidget* addressbar1 = NULL;
 
 I64 old_window_width = -1;
 I64 old_window_height = -1;
+I64 old_mouse_z = Mouse.z;
 
 class @browser
 {
@@ -264,6 +265,14 @@ U0 @cyberia_new_tab()
     // cyberia->a("tabs")->append(new_tab);
 }
 
+U0 @cyberia_vscroll_change(Widget*)
+{
+    if (!browser || !browser->renderer)
+        return;
+
+    @reflow_node_list(browser->renderer);
+}
+
 U0 @cyberia_win_repaint(Window*)
 {
     if (!win || !addressbar1 || !background1 || !vscroll1 || !status1 || !statusbackdrop1)
@@ -279,6 +288,13 @@ U0 @cyberia_win_repaint(Window*)
     vscroll1->y = background1->y;
     vscroll1->width = 16;
     vscroll1->height = background1->ctx->height;
+
+    I64 delta_z = Mouse.z - old_mouse_z;
+    if (delta_z) {
+        vscroll1->scroll += delta_z;
+        @cyberia_vscroll_change(vscroll1);
+    }
+    old_mouse_z = Mouse.z;
 
     if (StrLen(&status2->text)) {
         status1->y = win->height;
@@ -346,14 +362,6 @@ U0 @cyberia_win_mouseat(Window*)
 
     StrCpy(&status2->text, resolved_href);
     Free(resolved_href);
-}
-
-U0 @cyberia_vscroll_change(Widget*)
-{
-    if (!browser || !browser->renderer)
-        return;
-
-    @reflow_node_list(browser->renderer);
 }
 
 U0 @cyberia_init()
