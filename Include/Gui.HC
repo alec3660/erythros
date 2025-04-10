@@ -1,3 +1,5 @@
+#define GUI_EVENT_WIN_REPAINT_TIMEOUT 100
+
 U0 @gui_event_loop_handle_msg(IpcMessage* msg)
 {
     Window* win = NULL;
@@ -36,7 +38,7 @@ U0 @gui_event_loop_handle_msg(IpcMessage* msg)
     case CPZ_MSG_WIN_RIGHT_BTN_UP:
     case CPZ_MSG_WIN_RIGHT_BTN_DOWN:
     case CPZ_MSG_WIN_KEY_PRESS:
-        if (!win->explicit_repaint)
+        if (!win->explicit_repaint && cnts.jiffies < msg->timestamp + GUI_EVENT_WIN_REPAINT_TIMEOUT)
             win_repaint = TRUE;
         break;
     default:
