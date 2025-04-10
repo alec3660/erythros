@@ -522,8 +522,15 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     if (!StrICmp(type, "submit")) {
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
         btn->data = node;
-        Gui.Widget.SetCallback(btn, "clicked", &Reboot);
+        // FIXME: Gui.Widget.SetCallback(btn, "clicked", &@form_submit_callback);
         StrCpy(&btn->text, @t(value, value, "Submit"));
+        return;
+    }
+
+    if (!type || !StrICmp(type, "text")) {
+        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        btn->data = node;
+        StrCpy(&btn->text, @t(value, value, ""));
         return;
     }
 }
