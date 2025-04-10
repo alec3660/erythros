@@ -184,7 +184,14 @@ U0 @cyberia_navigate()
     }
 
     if (resp->status.code == 301 || resp->status.code == 302) {
-        StrCpy(&addressbar1->text, resp->headers->@("Location"));
+        U8* unresolved_location = resp->headers->@("Location");
+        if (!unresolved_location)
+            return;
+        U8* resolved_location = @resolve_href(browser->renderer, unresolved_location);
+        if (!resolved_location)
+            return;
+        StrCpy(&addressbar1->text, resolved_location);
+        Free(resolved_location);
         @cyberia_navigate;
         return;
     }
