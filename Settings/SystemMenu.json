@@ -21,6 +21,17 @@
             "icon": "M:/Applications/Accessories/Icon.png"
         },
         {
+            "name": "Internet",
+            "items": [
+                {
+                    "name": "Cyberia",
+                    "path": "M:/Applications/Internet/Cyberia.app",
+                    "icon": "M:/Applications/Internet/Cyberia.app/lain.png"
+                }
+            ],
+            "icon": "M:/Applications/Internet/Icon.png"
+        },
+        {
             "name": "System",
             "items": [
                 {

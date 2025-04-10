@@ -77,9 +77,14 @@ load_elf("M:/build/bin/tlse");
 #include "Libraries/Clipboard";
 #include "Libraries/Widget";
 #include "Libraries/Theme";
-"}\n";
 
 @http_init_tmp_and_cache_directories;
+
+#include "Libraries/Css/Tokenizer";
+
+#include "Libraries/Html/Tokenizer";
+#include "Libraries/Html/Renderer";
+"}\n";
 
 load_elf("M:/build/bin/net");
 

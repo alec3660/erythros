@@ -1,8 +1,8 @@
-#define HTTP_TMP_DIRECTORY "B:/Tmp"
-#define HTTP_CACHE_DIRECTORY "B:/Tmp/Cache"
+#define HTTP_TMP_DIRECTORY "A:/Tmp"
+#define HTTP_CACHE_DIRECTORY "A:/Tmp/Cache"
 #define HTTP_FETCH_BUFFER_SIZE 1024 << 15
 
-#define SEDECIM_USER_AGENT_STRING "Mozilla/5.0 (compatible; Sedecim/1.0; TempleOS) (KHTML, like Gecko)"
+#define CYBERIA_USER_AGENT_STRING "Mozilla/5.0 (compatible; Cyberia/1.0; TempleOS) (KHTML, like Gecko)"
 
 class @http_buffer
 {
@@ -366,7 +366,7 @@ I64 @http_req(@http_request* req)
             "GET %s%s HTTP/1.0\r\n"
             "Host: %s\r\n"
             "%s"
-            "User-Agent: " SEDECIM_USER_AGENT_STRING
+            "User-Agent: " CYBERIA_USER_AGENT_STRING
             "\r\n\r\n",
             req->url->path, req->url->query, req->url->host, headers_buf);
         break;
@@ -375,7 +375,7 @@ I64 @http_req(@http_request* req)
             "HEAD %s%s HTTP/1.0\r\n"
             "Host: %s\r\n"
             "%s"
-            "User-Agent: " SEDECIM_USER_AGENT_STRING
+            "User-Agent: " CYBERIA_USER_AGENT_STRING
             "\r\n\r\n",
             req->url->path, req->url->query, req->url->host, headers_buf);
         break;
@@ -384,7 +384,7 @@ I64 @http_req(@http_request* req)
             "POST %s%s HTTP/1.0\r\n"
             "Host: %s\r\n"
             "%s"
-            "User-Agent: " SEDECIM_USER_AGENT_STRING
+            "User-Agent: " CYBERIA_USER_AGENT_STRING
             "\r\n"
             "Content-Length: %d\r\n\r\n",
             req->url->path, req->url->query, req->url->host, headers_buf,
@@ -396,7 +396,7 @@ I64 @http_req(@http_request* req)
             "PUT %s%s HTTP/1.0\r\n"
             "Host: %s\r\n"
             "%s"
-            "User-Agent: " SEDECIM_USER_AGENT_STRING
+            "User-Agent: " CYBERIA_USER_AGENT_STRING
             "\r\n"
             "Content-Length: %d\r\n\r\n",
             req->url->path, req->url->query, req->url->host, headers_buf,
