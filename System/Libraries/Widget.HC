@@ -308,6 +308,8 @@ U0 @gui_widget_set_text(Widget* widget, U8* text)
     default:
         break;
     }
+    if (!widget->parent_win->explicit_repaint)
+        Gui.Window.Refresh(widget->parent_win);
 }
 
 Bool @widget_is_hovered(I64 x, I64 y, Widget* widget)
