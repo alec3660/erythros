@@ -4,6 +4,7 @@
 
 class IpcMessage {
     CTask* client;
+    I64 timestamp;
     I64 type;
     U64 payload;
     I64 i64;
@@ -42,6 +43,7 @@ U0 @ipc_msg_send(
         Free(msg);
         return;
     }
+    msg->timestamp = cnts.jiffies;
     FifoI64Ins(task->ipc, msg);
 }
 
