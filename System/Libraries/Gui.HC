@@ -54,6 +54,7 @@ class Widget {
     I64 height;
     I64 opacity;
     U64 flags;
+    U64 data;
     U8* tag;
     Widget* echo;
     Window* parent_win;
