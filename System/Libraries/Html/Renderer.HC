@@ -699,6 +699,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
 U0 @reflow_node_list(HtmlRenderer* renderer)
 {
+    if (!renderer)
+        return;
+    if (!renderer->widgets_base)
+        return;
     I64 prev_render_y = renderer->render_y;
     renderer->render_x = 0;
     renderer->render_y = renderer->background_widget->y;
