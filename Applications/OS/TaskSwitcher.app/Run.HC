@@ -28,7 +28,7 @@ U0 keypress_callback(Window* win, I64)
     I64 i;
     if (!task_switcher_active) {
         if ((KeyDown(SC_CTRL) && KeyDown(Char2ScanCode('w'))) || (KeyDown(SC_ALT) && KeyDown(SC_F4)))
-            if (Compositor.active_win != win && Compositor.active_win->callback.close)
+            if (Compositor.active_win && Compositor.active_win != win && Compositor.active_win->callback.close)
                 Compositor.active_win->callback.close(Compositor.active_win);
         return;
     }
