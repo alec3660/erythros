@@ -142,6 +142,11 @@ U0 @compositor_refresh(Window* win)
     msg->type = CPZ_MSG_WIN_REPAINT;
     msg->payload = win;
     Ipc.MsgSend(msg->client, msg);
+    if (!Compositor.menubar.win || Compositor.menubar.win == win)
+        return;
+    if (Compositor.active_win == win && Compositor.menubar.title) {
+        Gui.Widget.SetText(Compositor.menubar.title, win->title);
+    }
 }
 
 U0 @compositor_set_z_index(Window* win, I64 index)
