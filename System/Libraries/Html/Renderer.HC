@@ -511,6 +511,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         return;
 
     ButtonWidget* btn = NULL;
+    TextInputWidget* input = NULL;
 
     if (!StrICmp(type, "button")) {
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
@@ -528,9 +529,17 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!type || !StrICmp(type, "text")) {
-        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
-        btn->data = node;
-        StrCpy(&btn->text, @t(value, value, ""));
+        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        input->data = node;
+        StrCpy(&input->text, @t(value, value, ""));
+        return;
+    }
+
+    if (!StrICmp(type, "password")) {
+        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        input->is_password = TRUE;
+        input->data = node;
+        StrCpy(&input->text, @t(value, value, ""));
         return;
     }
 }
