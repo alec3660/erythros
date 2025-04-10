@@ -512,6 +512,14 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
 
     ButtonWidget* btn = NULL;
     TextInputWidget* input = NULL;
+    CheckBoxWidget* cb = NULL;
+
+    if (!StrICmp(type, "checkbox")) {
+        cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, 14, 14); // FIXME: Derive width/height
+        cb->checked = node->attributes->@("checked");
+        cb->data = node;
+        return;
+    }
 
     if (!StrICmp(type, "button")) {
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
