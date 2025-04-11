@@ -212,6 +212,8 @@ U0 @cyberia_navigate()
     // background1->ctx->fill(Color(255, 255, 255));
 
     status1->SetText("Rendering page...");
+    node_list->backgroundColor = Color(255, 255, 255);
+    node_list->color = Color(0, 0, 0);
     @render_node_list(node_list, renderer);
 
     @window_widgets_list* append = renderer->widgets_base;
