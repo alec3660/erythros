@@ -248,6 +248,13 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
     U8 node_ptr_string[32];
     U8* tmpmd5;
 
+    if (!node)
+        return FALSE;
+    if (node->parentNode) {
+        node->backgroundColor = node->parentNode->backgroundColor;
+        node->color = node->parentNode->color;
+    }
+
     for (i = 0; i < renderer->css_rules->length; i++) {
         rule = renderer->css_rules->@(i);
         matched = FALSE;
@@ -584,7 +591,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                 fragment_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
-                fragment_widget->ctx = NewContext2D(text_width, ToI64(font_size * 1.5))->fill(Color(255, 255, 255))->text(font_name, 0, 0, font_size, node->parentNode->color, fragment[i]);
+                fragment_widget->ctx = NewContext2D(text_width, ToI64(font_size * 1.5))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, font_size, node->parentNode->color, fragment[i]);
                 fragment_widget->width = fragment_widget->ctx->width;
                 fragment_widget->height = fragment_widget->ctx->height;
             }
@@ -622,6 +629,21 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (StrICmp(node->tagName, "InternalTextNode") || !parent_nodes_excluded_from_text_rendering->contains(node->tagName))
         if (!@render_css_for_node(node, renderer))
             return;
+
+    if (node->attributes->@("bgcolor")) {
+        if (@css_named_colors->@(node->attributes->@("bgcolor"))) {
+            node->backgroundColor = @css_resolve_color_from_rrggbb(@css_named_colors->@(node->attributes->@("bgcolor")));
+        } else if (node->attributes->@("bgcolor")(U8*)[0] == '#') {
+            node->backgroundColor = @css_resolve_color_from_rrggbb(node->attributes->@("bgcolor"));
+        }
+    }
+    if (node->attributes->@("color")) {
+        if (@css_named_colors->@(node->attributes->@("color"))) {
+            node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(node->attributes->@("color")));
+        } else if (node->attributes->@("color")(U8*)[0] == '#') {
+            node->color = @css_resolve_color_from_rrggbb(node->attributes->@("color"));
+        }
+    }
 
     Context2DWidget* block_widget;
 
