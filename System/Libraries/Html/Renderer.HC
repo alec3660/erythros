@@ -268,12 +268,6 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
                 Free(tmpmd5);
             }
 
-            // try to match tagName
-            if (!StrICmp(matches->@(0), node->tagName)) {
-                matched = TRUE;
-                goto @css_rule_check_if_matched;
-            }
-
             // try to match id
             if (*(matches->@(0)(U8*)) == '#' && node->attributes->@("id")) {
                 if (!StrCmp(matches->@(0) + 1, node->attributes->@("id"))) {
@@ -308,6 +302,12 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
                         }
                     }
                 }
+            }
+
+            // try to match tagName
+            if (!StrICmp(matches->@(0), node->tagName)) {
+                matched = TRUE;
+                goto @css_rule_check_if_matched;
             }
 
             @css_rule_check_if_matched : if (matched)
@@ -619,7 +619,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     I64 margin_top = 32; // FIXME: Derive these
     I64 margin_bottom = 32;
 
-    if (StrICmp(node->tagName, "InternalTextNode") && StrICmp(node->tagName, "option") && StrICmp(node->tagName, "script") && StrICmp(node->tagName, "style") && StrICmp(node->tagName, "title"))
+    if (StrICmp(node->tagName, "InternalTextNode") || !parent_nodes_excluded_from_text_rendering->contains(node->tagName))
         if (!@render_css_for_node(node, renderer))
             return;
 
