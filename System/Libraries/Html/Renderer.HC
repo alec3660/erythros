@@ -257,6 +257,7 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
         node->color = node->parentNode->color;
         node->fontFamily = node->parentNode->fontFamily;
         node->fontSize = node->parentNode->fontSize;
+        node->textAlign = node->parentNode->textAlign;
     }
 
     for (i = 0; i < renderer->css_rules->length; i++) {
@@ -750,6 +751,16 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         }
     }
 
+    if (node->attributes->@("align")) {
+        if (!StrICmp(node->attributes->@("align"), "center"))
+            node->textAlign = CSS_TEXT_ALIGN_CENTER;
+        if (!StrICmp(node->attributes->@("align"), "right"))
+            node->textAlign = CSS_TEXT_ALIGN_RIGHT;
+    }
+
+    if (!StrICmp(node->tagName, "center"))
+        node->textAlign = CSS_TEXT_ALIGN_CENTER;
+
     Context2DWidget* block_widget;
 
     // FIXME: Resolve if display: block is set
@@ -838,6 +849,8 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
     }
     renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
 
+    I64 cumulative_widgets_width;
+    @window_widgets_list* cumulative_list_item;
     @window_widgets_list* widget_list_item = renderer->widgets_base->next;
     Widget* widget;
     @html_dom_node* node;
@@ -851,6 +864,25 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
                 renderer->render_x = 0;
                 renderer->render_y += renderer->max_line_height;
                 renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+            }
+
+            if (!renderer->render_x && node->textAlign) {
+                cumulative_list_item = widget_list_item->next;
+                cumulative_widgets_width = 0;
+                while (cumulative_list_item && cumulative_list_item->widget && !cumulative_list_item->widget->data(@html_dom_node*)->display_block) {
+                    cumulative_widgets_width += cumulative_list_item->widget->width;
+                    cumulative_list_item = cumulative_list_item->next;
+                }
+                switch (node->textAlign) {
+                case CSS_TEXT_ALIGN_CENTER:
+                    renderer->render_x = (renderer->win->width / 2) - (cumulative_widgets_width / 2);
+                    break;
+                case CSS_TEXT_ALIGN_RIGHT:
+                    renderer->render_x = renderer->win->width - cumulative_widgets_width;
+                    break;
+                default:
+                    break;
+                }
             }
 
             widget->x = renderer->render_x;
