@@ -593,12 +593,13 @@ I32* @I32_text_stream_from_utf8(U8* text, I64* count)
     if (!text || !StrLen(text))
         return NULL;
     I64 i = 0;
+    I64 j = 0;
     I32 ch;
     I32 code_point;
     I32* stream = CAlloc((StrLen(text) + 1) * sizeof(I32), erythros_mem_task);
     while (ch = text[i]) {
         if (ch < 0x80) {
-            stream[i] = ch;
+            stream[j++] = ch;
             goto @parse_next_utf8_byte;
         }
         if (ch & 0xf0 == 0xf0) {
@@ -614,10 +615,10 @@ I32* @I32_text_stream_from_utf8(U8* text, I64* count)
             code_point = '?'; // Invalid character
             goto @parse_next_utf8_byte;
         }
-        stream[i] = code_point;
+        stream[j++] = code_point;
         @parse_next_utf8_byte : ++i;
     }
-    *count = i;
+    *count = j;
     return stream;
 }
 
