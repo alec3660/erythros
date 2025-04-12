@@ -17,6 +17,9 @@ U0 @truetype_init_fonts()
         de = de->next;
     }
     DirTreeDel(font_files);
+    Fonts->set("sans-serif", Fonts->@("Free Sans"), JSON_NUMBER);
+    Fonts->set("serif", Fonts->@("Free Serif"), JSON_NUMBER);
+    Fonts->set("monospace", Fonts->@("Free Mono"), JSON_NUMBER);
 }
 
 @truetype_init_fonts;
