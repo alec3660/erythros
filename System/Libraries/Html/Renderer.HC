@@ -394,7 +394,6 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
                                 }
                                 font_key = font_key->next;
                             }
-                            "\n";
                         }
                     }
                 css_continue_to_next_property:
