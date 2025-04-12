@@ -35,7 +35,7 @@ I32 @stbtt_InitFont(stbtt_fontinfo* info, U8* data, I32 offset)
     }
 }
 
-U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, U8* word)
+U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, I32* word)
 {
     U64 reg RDI rdi = info;
     U64 reg RSI rsi = b_w;

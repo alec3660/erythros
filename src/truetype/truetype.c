@@ -1,7 +1,7 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
-unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h, char* word)
+unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h, int* word)
 {
     // https://github.com/justinmeiners/stb-truetype-example
     /* create a bitmap for the phrase */
@@ -18,8 +18,8 @@ unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h,
     ascent = roundf(ascent * scale);
     descent = roundf(descent * scale);
 
-    int i;
-    for (i = 0; i < strlen(word); ++i) {
+    int i = 0;
+    while (word[i]) {
         /* how wide is this character */
         int ax;
         int lsb;
@@ -44,6 +44,8 @@ unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h,
         int kern;
         kern = stbtt_GetCodepointKernAdvance(info, word[i], word[i + 1]);
         x += roundf(kern * scale);
+
+        ++i;
     }
 
     return bitmap;
