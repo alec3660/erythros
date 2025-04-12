@@ -212,8 +212,11 @@ U0 @cyberia_navigate()
     // background1->ctx->fill(Color(255, 255, 255));
 
     status1->SetText("Rendering page...");
+    Sleep(100);
     node_list->backgroundColor = Color(255, 255, 255);
     node_list->color = Color(0, 0, 0);
+    node_list->fontFamily = "Free Serif";
+    node_list->fontSize = 16;
     @render_node_list(node_list, renderer);
 
     @window_widgets_list* append = renderer->widgets_base;

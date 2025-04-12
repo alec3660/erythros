@@ -1171,7 +1171,7 @@ I64 @get_truetype_text_width(U8* font_name, I64 size, U8* text)
     I64 res = 0;
     CDC* dc = DCNew(Display.Width(), (size * 2));
     Free(dc->body);
-    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.5), text);
+    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), text);
     res = X2Pos(dc) - X1Pos(dc);
     DCDel(dc);
     return res;
@@ -1186,7 +1186,7 @@ U0 Text2D(Context2D* ctx, U8* font_name, I64 x, I64 y, I64 size, U32 color, U8* 
     Context2D* text_ctx = NewContext2D(ctx->width, ctx->height);
     CDC* dc = DCNew(ctx->width, ctx->height);
     Free(dc->body);
-    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.5), text);
+    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), text);
     I64 text_x, text_y, text_c;
     for (text_y = 0; text_y < dc->height; text_y++) {
         for (text_x = 0; text_x < dc->width; text_x++) {

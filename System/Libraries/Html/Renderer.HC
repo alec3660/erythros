@@ -247,12 +247,16 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
     I64 color = TRANSPARENT;
     U8 node_ptr_string[32];
     U8* tmpmd5;
+    U8* match_font_family;
+    JsonKey* font_key;
 
     if (!node)
         return FALSE;
     if (node->parentNode) {
         node->backgroundColor = node->parentNode->backgroundColor;
         node->color = node->parentNode->color;
+        node->fontFamily = node->parentNode->fontFamily;
+        node->fontSize = node->parentNode->fontSize;
     }
 
     for (i = 0; i < renderer->css_rules->length; i++) {
@@ -366,15 +370,34 @@ Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
                     if (!StrICmp(key->name, "line-height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
                         StrCpy(node_tmpnum_buf, values->@(0));
                         node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->font_size = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
+                        node->fontSize = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
                     }
 
                     if (!StrICmp(key->name, "font-size") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
                         StrCpy(node_tmpnum_buf, values->@(0));
                         node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->font_size = Str2I64(node_tmpnum_buf);
+                        node->fontSize = Str2I64(node_tmpnum_buf);
                     }
 
+                    if (!StrICmp(key->name, "font-family")) {
+                        for (k = 0; k < values->length; k++) {
+
+                            match_font_family = values->@(k);
+                            String.Trim(match_font_family);
+                            String.Trim(match_font_family, '"');
+
+                            font_key = Fonts->keys;
+                            while (font_key) {
+                                if (!StrICmp(font_key->name, match_font_family)) {
+                                    node->fontFamily = font_key->name;
+                                    goto css_continue_to_next_property;
+                                }
+                                font_key = font_key->next;
+                            }
+                            "\n";
+                        }
+                    }
+                css_continue_to_next_property:
                     key = key->next;
                 }
             }
@@ -562,42 +585,124 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
 JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
 JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"br\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
 
+#define ADD_BYTE_TO_CODE_POINT_VALUE code_point = ((code_point << 6) | text[++i] & 0x3f);
+#define ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
+#define ADD_THREE_BYTES_TO_CODE_POINT_VALUE ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
+
+I32* @I32_text_stream_from_utf8(U8* text, I64* count)
+{
+    if (!text || !StrLen(text))
+        return NULL;
+    I64 i = 0;
+    I32 ch;
+    I32 code_point;
+    I32* stream = CAlloc((StrLen(text) + 1) * sizeof(I32), erythros_mem_task);
+    while (ch = text[i]) {
+        if (ch < 0x80) {
+            stream[i] = ch;
+            goto @parse_next_utf8_byte;
+        }
+        if (ch & 0xf0 == 0xf0) {
+            code_point = ch & 0x7;
+            ADD_THREE_BYTES_TO_CODE_POINT_VALUE
+        } else if (ch & 0xe0 == 0xe0) {
+            code_point = ch & 0xf;
+            ADD_TWO_BYTES_TO_CODE_POINT_VALUE
+        } else if (ch & 0xc0 == 0xc0) {
+            code_point = ch & 0x1f;
+            ADD_BYTE_TO_CODE_POINT_VALUE
+        } else {
+            code_point = '?'; // Invalid character
+            goto @parse_next_utf8_byte;
+        }
+        stream[i] = code_point;
+        @parse_next_utf8_byte : ++i;
+    }
+    *count = i;
+    return stream;
+}
+
+Bool @code_point_is_whitespace(I32 code_point)
+{
+    switch (code_point) {
+    case 0x09...0x0d:
+    case 0x20:
+    case 0x85:
+    case 0xa0:
+    case 0x1680:
+    case 0x2000...0x200a:
+    case 0x2028:
+    case 0x2029:
+    case 0x202f:
+    case 0x205f:
+    case 0x3000:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
 {
-    if (!@html_text_is_printable_ascii(node->text)) {
-        // FIXME: Wire up UTF-8 handling for non-ASCII characters
+    if (!node || !renderer || !node->text || !StrLen(node->text))
         return;
-    }
-    I64 background_color = Color(255, 255, 255); // FIXME: Alpha blend into rect beneath fragment in z-index
-    I64 default_font_size = 16;                  // FIXME: Derive this
-    U8* font_name = "Free Serif";                // FIXME: Derive this
-    I64 font_size = @t(node->parentNode->font_size, node->parentNode->font_size, default_font_size);
-    I64 text_width;
 
-    U8* fragments = StrNew(node->text);
+    I64 i, j;
+
+    // Convert all the code points to I32
+    I64 code_point_count = 0;
+    I64 code_point_offset = 0;
+    I32* stream = @I32_text_stream_from_utf8(node->text, &code_point_count);
+
+    // L-R Trim all the whitespace code points
+    while (stream[code_point_offset] && @code_point_is_whitespace(stream[code_point_offset]))
+        ++code_point_offset;
+    while (@code_point_is_whitespace(stream[code_point_offset + code_point_count - 1]))
+        --code_point_count;
+
+    // Get the fragment count
     I64 fragment_count = 0;
-    U8** fragment = String.Split(fragments, ' ', &fragment_count);
-    I64 i;
+    for (i = code_point_offset; i < code_point_count; i++) {
+        if (@code_point_is_whitespace(stream[i]))
+            ++fragment_count;
+    }
+    ++fragment_count;
 
+    // Calculate fragment pointers and NULL terminate fragments
+    I32** fragments = CAlloc(sizeof(I32*) * (fragment_count));
+    I64 fragment_base = code_point_offset;
+    j = 0;
+    for (i = code_point_offset; i < code_point_count; i++) {
+        if (@code_point_is_whitespace(stream[i])) {
+            fragments[j] = &stream[fragment_base];
+            stream[i] = NULL;
+            fragment_base = i + 1;
+            ++j;
+        }
+    }
+    fragments[j] = &stream[fragment_base];
+    stream[i] = NULL;
+    fragment_base = i + 1;
+
+    I64 text_width;
     Context2DWidget* fragment_widget;
 
-    I64 last_fragment_pos = 0;
     for (i = 0; i < fragment_count; i++) {
-        if (fragment[i] && *fragment[i]) {
-            last_fragment_pos = i;
-            text_width = @get_truetype_text_width(font_name, font_size, fragment[i]);
+        if (fragments[i] && *fragments[i]) {
+            text_width = @get_truetype_text_width(node->parentNode->fontFamily, node->parentNode->fontSize, fragments[i]);
             if (text_width) {
                 text_width += 4;
                 fragment_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
-                fragment_widget->ctx = NewContext2D(text_width, ToI64(font_size * 1.5))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, font_size, node->parentNode->color, fragment[i]);
+                fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(node->parentNode->fontFamily, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
                 fragment_widget->width = fragment_widget->ctx->width;
                 fragment_widget->height = fragment_widget->ctx->height;
             }
         }
     }
     Free(fragments);
+    Free(stream);
 }
 
 U0 @renderer_append_image(HtmlRenderer* renderer, Context2DWidget* widget)
@@ -626,7 +731,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     I64 margin_top = 32; // FIXME: Derive these
     I64 margin_bottom = 32;
 
-    if (StrICmp(node->tagName, "InternalTextNode") || !parent_nodes_excluded_from_text_rendering->contains(node->tagName))
+    if (StrICmp(node->tagName, "InternalTextNode"))
         if (!@render_css_for_node(node, renderer))
             return;
 
