@@ -12,9 +12,6 @@ U32 @dns_query(U8* host)
     U32 res = 0;
     if (!host)
         return U32_MAX;
-    if (!StrICmp("catbox.moe", host)) {
-        return 0x0a1400fe;
-    }
     DnsRequest* request = CAlloc(sizeof(DnsRequest), Fs->code_heap);
     request->host = StrNew(host, erythros_mem_task);
     request->pointer_to_u32 = &res;
