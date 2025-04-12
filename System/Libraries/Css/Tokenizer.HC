@@ -135,6 +135,7 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             case '\t':
             case '\r':
             case '\n':
+            case ',':
                 if (FifoU8Cnt(t.value_fifo))
                     @css_try_append_value(&t);
                 break;
