@@ -94,6 +94,7 @@ class @html_dom_node : JsonElement
     I64 height;
     U32 backgroundColor;
     U32 color;
+    U8* fontFamily;
     I64 font_size;
     Bool display_block;
 };
