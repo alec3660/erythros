@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from pathlib import Path
 import glob
+import json
 import os
 import subprocess
 import sys
@@ -9,27 +10,68 @@ import time
 if len(sys.argv) < 2:
     raise ValueError('wrong number of arguments')
 
+home_path = str(Path.home()) + '/'
+
 project_path = sys.argv[1] + '/'
 project_name = project_path.rsplit('/')[-2]
 
-isoc_file = project_path + 'build/isoc/Erythros.ISO.C'
-redsea_path = project_path + 'build/redsea'
+build_options_file = project_path + 'build_options.json'
 
-home_path = str(Path.home()) + '/'
+try:
+    build_options = json.loads(open(build_options_file, "rb").read())
+except:
+    build_options = {}
 
-jakt_compiler_path = home_path + 'cloned/jakt/build/bin/jakt'
-jakt_runtime_path = home_path + 'cloned/jakt/runtime'
-jakt_lib_path = home_path + 'cloned/jakt/build/lib/x86_64-unknown-linux-unknown/'
+# Default settings
 
-qemu_slipstream_iso_file = project_path + 'build/isoc/bootable.iso'
-qemu_virtio_disk_path = home_path + 'erythros-virtio-disk.qcow2'
+default_settings = {
+    'isoc_file': project_path + 'build/isoc/Erythros.ISO.C',
+    'redsea_path': project_path + 'build/redsea',
+    'jakt_compiler_path': home_path + 'cloned/jakt/build/bin/jakt',
+    'jakt_runtime_path': home_path + 'cloned/jakt/runtime',
+    'jakt_lib_path': home_path + 'cloned/jakt/build/lib/x86_64-unknown-linux-unknown/',
+    'qemu_bin_path': 'qemu-system-x86_64',
+    'qemu_slipstream_iso_file': project_path + 'build/isoc/bootable.iso',
+    'qemu_virtio_disk_path': home_path + 'erythros-virtio-disk.qcow2',
+    'templeos_iso_file': home_path + 'iso/TempleOS.ISO'
+}
 
-qemu_bin_path = "qemu-system-x86_64"
-qemu_display = "-display sdl,grab-mod=rctrl"
+isoc_file = build_options['isoc_file'] if 'isoc_file' in build_options else default_settings['isoc_file']
+redsea_path = build_options['redsea_path'] if 'redsea_path' in build_options else default_settings['redsea_path']
 
-templeos_iso_file = home_path + 'iso/TempleOS.ISO'
+jakt_compiler_path = build_options['jakt_compiler_path'] if 'jakt_compiler_path' in build_options else default_settings['jakt_compiler_path']
+jakt_runtime_path = build_options['jakt_runtime_path'] if 'jakt_runtime_path' in build_options else default_settings['jakt_runtime_path']
+jakt_lib_path = build_options['jakt_lib_path'] if 'jakt_lib_path' in build_options else default_settings['jakt_lib_path']
 
-qemu_run_cmd = qemu_bin_path + ' ' + qemu_display + ' -enable-kvm -smp cores=4 -m 8192 -netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no -device ac97 -device virtio-net,netdev=mynet0 -drive file=' + qemu_virtio_disk_path + ',format=qcow2,if=none,index=0,media=disk,id=virtio-disk -device virtio-blk-pci,drive=virtio-disk -device vmmouse,i8042=i8042 -device vmware-svga -cdrom ' + qemu_slipstream_iso_file + ' -debugcon stdio -boot d'
+qemu_bin_path = build_options['qemu_bin_path'] if 'qemu_bin_path' in build_options else default_settings['qemu_bin_path']
+qemu_slipstream_iso_file = build_options['qemu_slipstream_iso_file'] if 'qemu_slipstream_iso_file' in build_options else default_settings['qemu_slipstream_iso_file']
+qemu_virtio_disk_path = build_options['qemu_virtio_disk_path'] if 'qemu_virtio_disk_path' in build_options else default_settings['qemu_virtio_disk_path']
+
+templeos_iso_file = build_options['templeos_iso_file'] if 'templeos_iso_file' in build_options else default_settings['templeos_iso_file']
+
+qemu_args = build_options['qemu_args'] if 'qemu_args' in build_options else [
+    '-display sdl,grab-mod=rctrl',
+    '-enable-kvm',
+    '-smp cores=4',
+    '-m 8192',
+    '-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no',
+    '-device ac97',
+    '-device virtio-net,netdev=mynet0',
+    '-drive file=' + qemu_virtio_disk_path + ',format=qcow2,if=none,index=0,media=disk,id=virtio-disk',
+    '-device virtio-blk-pci,drive=virtio-disk',
+    '-device vmmouse,i8042=i8042',
+    '-device vmware-svga',
+    '-cdrom ' + qemu_slipstream_iso_file,
+    '-debugcon stdio',
+    '-boot d'
+]
+
+qemu_run_cmd = ' '.join([qemu_bin_path] + qemu_args)
+
+def build_options_bool(key):
+    if key not in build_options:
+        return False
+    return build_options[key] == True
 
 def clang_format_src_files():
     print("build-all: clang-format-src-files")
@@ -202,15 +244,17 @@ def run():
         raise ValueError("build-all: step 'run' failed, error code " + str(res))
 
 def build_all():
-    clang_format_src_files()
-    refresh_build_path()
-    build_image()
-    build_openlibm()
-    build_truetype()
-    build_libtemple()
-    build_tlse()
-    transpile_net_to_sepples()
-    build_net()
+    if not build_options_bool('skip_clang_format'):
+        clang_format_src_files()
+    if not build_options_bool('skip_rebuild'):
+        refresh_build_path()
+        build_image()
+        build_openlibm()
+        build_truetype()
+        build_libtemple()
+        build_tlse()
+        transpile_net_to_sepples()
+        build_net()
     generate_iso_c_file()
     generate_slipstream_iso_file()
     run()
