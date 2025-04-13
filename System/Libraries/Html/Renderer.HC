@@ -227,7 +227,7 @@ U32 @css_resolve_color_from_rrggbb(U8* str)
     }
 }
 
-Bool @render_css_for_node(@html_dom_node* node, HtmlRenderer* renderer)
+Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
 {
     I64 i, j, k;
     JsonObject* rule = NULL;
@@ -585,7 +585,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
 }
 
 JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
-JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"br\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
+JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
 
 #define ADD_BYTE_TO_CODE_POINT_VALUE code_point = ((code_point << 6) | text[++i] & 0x3f);
 #define ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
@@ -723,20 +723,10 @@ U0 @renderer_append_image(HtmlRenderer* renderer, Context2DWidget* widget)
     }
 }
 
-U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
+U0 @apply_attribute_values_to_node(@html_dom_node* node)
 {
-    if (!node || !renderer)
+    if (!node)
         return;
-
-    I64 i;
-    U8 buf[HTML_WORK_BUFFER_SIZE];
-
-    I64 margin_top = 32; // FIXME: Derive these
-    I64 margin_bottom = 32;
-
-    if (StrICmp(node->tagName, "InternalTextNode"))
-        if (!@render_css_for_node(node, renderer))
-            return;
 
     if (node->attributes->@("bgcolor")) {
         if (@css_named_colors->@(node->attributes->@("bgcolor"))) {
@@ -745,6 +735,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
             node->backgroundColor = @css_resolve_color_from_rrggbb(node->attributes->@("bgcolor"));
         }
     }
+
     if (node->attributes->@("color")) {
         if (@css_named_colors->@(node->attributes->@("color"))) {
             node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(node->attributes->@("color")));
@@ -762,8 +753,32 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     if (!StrICmp(node->tagName, "center"))
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
+}
+
+U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    if (!node || !renderer)
+        return;
+
+    I64 i;
+    U8 buf[HTML_WORK_BUFFER_SIZE];
+
+    Context2DWidget* block_widget;
+    Context2DWidget* img_widget;
+
+    // FIXME: Resolve if display: block is set
+    if (block_level_element_tag_names->contains(node->tagName)) {
+        node->display_block = TRUE;
+    }
+
+    if (StrICmp(node->tagName, "InternalTextNode"))
+        if (!@apply_css_rules_to_node(node, renderer))
+            return;
 
     ++renderer->indent;
+
+    @apply_attribute_values_to_node(node);
+
     if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
         for (i = 0; i < renderer->indent; i++)
             "  ";
@@ -771,13 +786,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
             node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->display_block;
     }
 
-    Context2DWidget* block_widget;
-
-    // FIXME: Resolve if display: block is set
-    if (block_level_element_tag_names->contains(node->tagName)) {
-        node->display_block = TRUE;
-    }
-
+    // Insert a block widget for the element's opening tag
     if (node->display_block) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
@@ -789,8 +798,6 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         renderer->background_widget->ctx->height = Display.Height();
         renderer->background_widget->ctx->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
     }
-
-    Context2DWidget* img_widget;
 
     if (!StrICmp(node->tagName, "form"))
         @create_form_from_node(renderer, node);
@@ -828,11 +835,13 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
             @render_node_list(node->children->@(i), renderer);
     }
 
+    // Insert a block widget for the element's closing tag
     if (node->display_block) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
         block_widget->data = node;
     }
+
     --renderer->indent;
 }
 
