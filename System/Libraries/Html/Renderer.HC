@@ -690,6 +690,8 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     I64 text_width;
     Context2DWidget* fragment_widget;
 
+    U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
+
     for (i = 0; i < fragment_count; i++) {
         if (fragments[i] && *fragments[i]) {
             text_width = @get_truetype_text_width(node->parentNode->fontFamily, node->parentNode->fontSize, fragments[i]);
@@ -699,6 +701,14 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
                 fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(node->parentNode->fontFamily, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
+
+                if (renderer->debug && fragment_widget->ctx) {
+                    fragment_widget->ctx->line(0, 0, fragment_widget->ctx->width - 1, 0, fragment_bounding_box_color);
+                    fragment_widget->ctx->line(0, fragment_widget->ctx->height - 1, fragment_widget->ctx->width - 1, fragment_widget->ctx->height - 1, fragment_bounding_box_color);
+                    fragment_widget->ctx->line(0, 0, 0, fragment_widget->ctx->height - 1, fragment_bounding_box_color);
+                    fragment_widget->ctx->line(fragment_widget->ctx->width - 1, 0, fragment_widget->ctx->width - 1, fragment_widget->ctx->height - 1, fragment_bounding_box_color);
+                }
+
                 fragment_widget->width = fragment_widget->ctx->width;
                 fragment_widget->height = fragment_widget->ctx->height;
             }
