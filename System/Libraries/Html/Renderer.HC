@@ -22,6 +22,7 @@ class @html_renderer
     I64 forms_index;
     @image_collection* img_coll;
     I64 img_count;
+    Bool debug;
     Bool last_char_was_whitespace;
     Bool enable_animations;
     Bool enable_lazy_loading;
@@ -34,6 +35,7 @@ class @html_renderer
     @window_widgets_list* images;
     I64 render_x;
     I64 render_y;
+    I64 indent;
     I64 max_line_height;
     Context2D* link_pointer;
     U64 link_callback;
@@ -761,6 +763,14 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (!StrICmp(node->tagName, "center"))
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
 
+    ++renderer->indent;
+    if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
+        for (i = 0; i < renderer->indent; i++)
+            "  ";
+        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, display_block: %d\n",
+            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->display_block;
+    }
+
     Context2DWidget* block_widget;
 
     // FIXME: Resolve if display: block is set
@@ -823,6 +833,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
             U64_MAX, U64_MAX, 0, 0);
         block_widget->data = node;
     }
+    --renderer->indent;
 }
 
 @html_dom_node* @self_or_ancestor_matches_tag_name(@html_dom_node* node, U8* tagName)
