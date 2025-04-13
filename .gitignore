@@ -8,3 +8,4 @@ src/openlibm/*.dll*
 src/openlibm/*.so*
 src/openlibm/*.dylib*
 src/openlibm/*.pc
+build_options.json
