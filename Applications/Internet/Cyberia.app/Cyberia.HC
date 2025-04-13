@@ -127,6 +127,7 @@ U0 @cyberia_navigate()
     renderer->background_widget = background1;
     renderer->vertical_scroll_widget = vscroll1;
     renderer->win = win;
+    renderer->indent = -1;
 
     renderer->current_url_string = StrNew(url_string, browser->task);
     renderer->current_url = @http_parse_url(url_string);
