@@ -1,3 +1,40 @@
+// Structure for the ICO header
+class @ico_header
+{
+    U16 reserved; // Reserved, must be 0
+    U16 type;     // Type: 1 for icon, 2 for cursor
+    U16 count;    // Number of images in the file
+};
+
+// Structure for the image directory entry
+class @ico_entry
+{
+    U8 width;           // Width of the image
+    U8 height;          // Height of the image
+    U8 color_count;     // Number of colors (0 if >= 256)
+    U8 reserved;        // Reserved, must be 0
+    U16 planes;         // Color planes
+    U16 bits_per_pixel; // Bits per pixel
+    U32 size_in_bytes;  // Size of the image data
+    U32 data_offset;    // Offset to the image data
+};
+
+class BITMAPFILEHEADER {
+    U16 bfType;
+    U32 bfSize;
+    U16 bfReserved1;
+    U16 bfReserved2;
+    U32 bfOffBits;
+    U32 bV5Size;
+    I32 bV5Width;
+    I32 bV5Height;
+    U16 bV5Planes;
+    U16 bV5BitCount;
+    U32 bV5Compression;
+    U32 bV5SizeImage;
+    U8 pad[100];
+};
+
 #define RENDERER_DEFAULT_MAX_LINE_HEIGHT 17
 
 class @html_lazyload_image
@@ -1071,6 +1108,134 @@ U0 @process_custom_css_rules(HtmlRenderer* renderer)
         }
         return;
     }
+}
+
+Context2D* DEFAULT_FAVICON = @image_file_to_context2d("M:/Applications/Internet/Icon.png");
+
+Context2D* @process_favicon(Context2D* tmpctx)
+{
+    Context2D* favicon_ctx = DEFAULT_FAVICON;
+    if (tmpctx) {
+        if (tmpctx->width == 16 && tmpctx->height == 16) {
+            favicon_ctx = tmpctx;
+        } else {
+            favicon_ctx = Scale2D(tmpctx, ToF64(16.0 / (tmpctx->width * 1.0)), ToF64(16.0 / (tmpctx->height * 1.0)));
+            DelContext2D(tmpctx);
+        }
+    }
+    return favicon_ctx;
+}
+
+Context2D* @favicon_for_page(HtmlRenderer* renderer)
+{
+    if (!renderer) {
+        return;
+    }
+
+    U8 status_text_buffer[128];
+    U8 buf[HTML_WORK_BUFFER_SIZE];
+    HttpUrl* url;
+    Context2DWidget* widget;
+    @html_dom_node* node;
+    U8* src;
+    Bool is_alternate_port;
+    @http_response* resp = NULL;
+
+    url = @expand_url_from_string(renderer->task, renderer->current_url, "/favicon.ico");
+    if (!url)
+        return DEFAULT_FAVICON;
+
+    U8* buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, renderer->task);
+
+    is_alternate_port = FALSE;
+    if (!StrICmp(url->scheme, "http://") && url->port != 80)
+        is_alternate_port = TRUE;
+    if (!StrICmp(url->scheme, "https://") && url->port != 443)
+        is_alternate_port = TRUE;
+    if (is_alternate_port)
+        StrPrint(buf, "%s%s:%d%s", url->scheme, url->host, url->port, url->path);
+    else
+        StrPrint(buf, "%s%s%s", url->scheme, url->host, url->path);
+
+    if (@http_is_resource_cached(buf, renderer->cache_directory)) {
+        StrPrint(status_text_buffer, "Loading favicon from cache: %s", buf);
+        @html_renderer_update_status_text(renderer, status_text_buffer);
+        resp = CAlloc(sizeof(@http_response), renderer->task);
+        resp->body.data = FileRead(@http_get_cached_resource_filename(buf, renderer->cache_directory), &resp->body.length);
+    } else {
+        StrPrint(status_text_buffer, "Fetching %s...", buf);
+        @html_renderer_update_status_text(renderer, status_text_buffer);
+        buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, renderer->task);
+        resp = Http.Get(url, buffer);
+        while (resp->state != HTTP_STATE_DONE) {
+            if (resp->state >= HTTP_STATE_HEADERS_RECEIVED) {
+                StrPrint(status_text_buffer, "Received %d bytes", resp->body.length);
+                @html_renderer_update_status_text(renderer, status_text_buffer);
+            }
+            Sleep(1);
+        }
+        if (!resp->body.length) {
+            Free(buffer);
+            return;
+        }
+        @http_cache_resource(buf, resp->body.data, resp->body.length, renderer->cache_directory);
+    }
+
+    Context2D* favicon_ctx = DEFAULT_FAVICON;
+
+    if (MemCmp(resp->body.data, "\x00\x00\x01\x00", 4)) {
+        // Try processing the data as some other supported image format
+        favicon_ctx = @process_favicon(@image_buffer_to_context2d(resp->body.data, resp->body.length));
+        Free(buffer);
+        return favicon_ctx;
+    }
+
+    U8* favicon_buffer = NULL;
+    I64 favicon_length = 0;
+
+    @ico_header* ico_header = resp->body.data;
+    @ico_entry* ico_entry = (ico_header(U64) + sizeof(@ico_header));
+
+    I64 i = 0;
+    while (i < ico_header->count) {
+        if ((ico_entry->width == 16 && ico_entry->height == 16) || ico_header->count == 1) {
+            favicon_buffer = resp->body.data + ico_entry->data_offset;
+            favicon_length = ico_entry->size_in_bytes;
+            break;
+        }
+        ++ico_entry;
+        ++i;
+    }
+
+    if (favicon_buffer && favicon_length) {
+
+        if (!MemCmp(favicon_buffer, "\x89PNG", 4)) {
+            // Image data is png, no need to get fancy
+            favicon_ctx = @process_favicon(@image_buffer_to_context2d(favicon_buffer, favicon_length));
+            Free(buffer);
+            return favicon_ctx;
+        }
+
+        // Let's slap a bmp header on this bad boy
+        I64 bmp_length = favicon_length + sizeof(BITMAPFILEHEADER);
+        BITMAPFILEHEADER* bmp = CAlloc(bmp_length, renderer->task);
+        MemCpy(bmp(U64) + sizeof(BITMAPFILEHEADER), favicon_buffer, favicon_length);
+
+        bmp->bfType = 'BM';
+        bmp->bfOffBits = *(favicon_buffer(U32*));
+        bmp->bfOffBits += sizeof(BITMAPFILEHEADER) - 20;
+        bmp->bV5Size = 0x7c; // BITMAPV5
+        bmp->bV5Width = ico_entry->width;
+        bmp->bV5Height = ico_entry->height;
+        bmp->bV5Planes = ico_entry->planes;
+        bmp->bV5BitCount = ico_entry->bits_per_pixel;
+
+        favicon_ctx = @process_favicon(@image_buffer_to_context2d(bmp, bmp_length));
+        Free(bmp);
+    }
+
+    Free(buffer);
+    return favicon_ctx;
 }
 
 U0 @fetch_images_for_page(HtmlRenderer* renderer)
