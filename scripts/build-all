@@ -186,6 +186,12 @@ def generate_iso_c_file():
     if res:
         raise ValueError(step_error_message + str(res))
 
+    if 'custom_files_path' in build_options:
+        copy_custom_files_cmd_line = 'rsync -av --inplace --progress ' + build_options['custom_files_path'] + ' ' + redsea_path
+        res = os.system(copy_custom_files_cmd_line)
+        if res:
+            raise ValueError(step_error_message + str(res))
+
     # Fixup addresses for Image.HC
     image_bin_path = redsea_path + '/build/bin/image'
     image_hc_path = redsea_path + '/System/Utilities/Image.HC'
