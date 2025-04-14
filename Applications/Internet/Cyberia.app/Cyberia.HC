@@ -321,12 +321,10 @@ U0 @cyberia_win_repaint(Window*)
         old_window_height = win->height;
     }
 
-    // vscroll1->length = ToI64(browser->renderer->render_y / vscroll1->height);
-    // "render_y: %d\n", browser->renderer->render_y;
-    if (browser->renderer->render_y > win->height) {
+    if (browser->renderer->calculated_page_height > background1->ctx->height) {
+        vscroll1->max = browser->renderer->calculated_page_height;
+        vscroll1->length = (vscroll1->height - 31) / MaxI64(2, ToI64(browser->renderer->calculated_page_height / background1->ctx->height));
         vscroll1->x = win->width - 25;
-        vscroll1->length = ToI64((vscroll1->height - 32) / (browser->renderer->render_y / (vscroll1->height - 32)));
-        //        vscroll1->length = vscroll1->height / (browser->renderer->render_y / vscroll1->height);
     }
 }
 
