@@ -1128,9 +1128,8 @@ Context2D* @process_favicon(Context2D* tmpctx)
 
 Context2D* @favicon_for_page(HtmlRenderer* renderer)
 {
-    if (!renderer) {
-        return;
-    }
+    if (!renderer)
+        return DEFAULT_FAVICON;
 
     U8 status_text_buffer[128];
     U8 buf[HTML_WORK_BUFFER_SIZE];
@@ -1176,7 +1175,7 @@ Context2D* @favicon_for_page(HtmlRenderer* renderer)
         }
         if (!resp->body.length) {
             Free(buffer);
-            return;
+            return DEFAULT_FAVICON;
         }
         @http_cache_resource(buf, resp->body.data, resp->body.length, renderer->cache_directory);
     }
