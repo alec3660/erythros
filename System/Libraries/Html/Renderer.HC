@@ -1,4 +1,4 @@
-#define RENDERER_DEFAULT_MAX_LINE_HEIGHT 8
+#define RENDERER_DEFAULT_MAX_LINE_HEIGHT 17
 
 class @html_lazyload_image
 {
@@ -37,6 +37,7 @@ class @html_renderer
     I64 render_y;
     I64 indent;
     I64 max_line_height;
+    I64 calculated_page_height;
     Context2D* link_pointer;
     U64 link_callback;
 };
@@ -651,6 +652,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
         return;
 
     I64 i, j;
+    node->textAlign = node->parentNode->textAlign;
 
     // Convert all the code points to I32
     I64 code_point_count = 0;
@@ -846,7 +848,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     // Insert a block widget for the element's closing tag
-    if (node->display_block) {
+    if (node->display_block || !StrICmp(node->tagName, "br")) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
         block_widget->data = node;
@@ -871,52 +873,86 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
         return;
     if (!renderer->widgets_base)
         return;
-    I64 prev_render_y = renderer->render_y;
+
     renderer->render_x = 0;
-    renderer->render_y = renderer->background_widget->y;
-    if (renderer->vertical_scroll_widget && prev_render_y && renderer->vertical_scroll_widget->scroll) {
-        renderer->render_y -= (renderer->vertical_scroll_widget->scroll * (prev_render_y / renderer->vertical_scroll_widget->height));
-    }
+    renderer->render_y = 0;
     renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
 
-    I64 cumulative_widgets_width;
-    @window_widgets_list* cumulative_list_item;
-    @window_widgets_list* widget_list_item = renderer->widgets_base->next;
-    Widget* widget;
+    VerticalScrollBarWidget* vscroll = renderer->vertical_scroll_widget;
+
+    I64 origin_y = renderer->background_widget->y;
+    I64 offset_y = origin_y;
+    I64 line_break_max = 0;
+    I64 minimum_vscroll_value = 0;
+    if (vscroll && vscroll->max && vscroll->value) {
+        minimum_vscroll_value = ToI64((vscroll->max * 1.0) / (vscroll->height * 1.0) * (16 * 1.0));
+        offset_y -= vscroll->value - minimum_vscroll_value;
+    }
+
     @html_dom_node* node;
+    @html_dom_node* cumulative_node;
+    I64 cumulative_widgets_width;
+    @window_widgets_list* widget_list_item = renderer->widgets_base->next;
+    @window_widgets_list* cumulative_list_item;
+    Widget* widget;
 
     while (widget_list_item) {
         widget = widget_list_item->widget;
         node = widget->data;
 
         if (node) {
-            if (node->display_block && renderer->render_x) {
+
+            if (!StrICmp(node->tagName, "br")) {
                 renderer->render_x = 0;
                 renderer->render_y += renderer->max_line_height;
                 renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+                goto reflow_next_list_item;
+            }
+
+            if (node->display_block) {
+                if (renderer->render_x) {
+                    renderer->render_x = 0;
+                    renderer->render_y += renderer->max_line_height;
+                    renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+                }
+                goto reflow_next_list_item;
             }
 
             if (!renderer->render_x && node->textAlign) {
+                // Begin calculating x offset for text alignment
+                cumulative_widgets_width = widget->width;
                 cumulative_list_item = widget_list_item->next;
-                cumulative_widgets_width = 0;
-                while (cumulative_list_item && cumulative_list_item->widget && !cumulative_list_item->widget->data(@html_dom_node*)->display_block) {
-                    cumulative_widgets_width += cumulative_list_item->widget->width;
-                    cumulative_list_item = cumulative_list_item->next;
+                while (cumulative_list_item && cumulative_list_item->widget && cumulative_list_item->widget->data) {
+                    cumulative_node = cumulative_list_item->widget->data;
+                    if (cumulative_node->display_block || !StrICmp(cumulative_node->tagName, "br")) {
+                        cumulative_list_item = NULL;
+                    } else {
+                        cumulative_widgets_width += cumulative_list_item->widget->width;
+                        cumulative_list_item = cumulative_list_item->next;
+                    }
                 }
                 switch (node->textAlign) {
                 case CSS_TEXT_ALIGN_CENTER:
                     renderer->render_x = (renderer->win->width / 2) - (cumulative_widgets_width / 2);
                     break;
                 case CSS_TEXT_ALIGN_RIGHT:
-                    renderer->render_x = renderer->win->width - cumulative_widgets_width;
+                    renderer->render_x = -8 + renderer->win->width - cumulative_widgets_width;
                     break;
                 default:
+                    "ERROR: Invalid node->textAlign value: %d\n", node->textAlign;
+                    PressAKey;
                     break;
                 }
             }
 
+            line_break_max = 8;
+            if (!node->textAlign) {
+                line_break_max += widget->width + 16;
+            }
+
             widget->x = renderer->render_x;
-            widget->y = renderer->render_y;
+            widget->y = renderer->render_y + offset_y;
+
             if (@self_or_ancestor_matches_tag_name(node, "a")) {
                 widget->pointer = renderer->link_pointer;
                 Gui.Widget.SetCallback(widget, "clicked", renderer->link_callback);
@@ -925,15 +961,24 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
             renderer->render_x += widget->width;
             renderer->max_line_height = Max(renderer->max_line_height, widget->height);
 
-            if (renderer->render_x > renderer->win->width - widget->width) {
+            if (renderer->render_x > renderer->win->width - line_break_max) {
                 renderer->render_x = 0;
                 renderer->render_y += renderer->max_line_height;
                 renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
             }
         }
+    reflow_next_list_item:
 
         widget_list_item = widget_list_item->next;
     }
+
+    if (renderer->render_x) {
+        renderer->render_x = 0;
+        renderer->render_y += renderer->max_line_height;
+        renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+    }
+
+    renderer->calculated_page_height = renderer->render_y - origin_y;
 }
 
 U0 @process_css_rules_from_external_stylesheet(HtmlRenderer* renderer, U8* str)
