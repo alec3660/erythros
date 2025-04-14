@@ -253,6 +253,7 @@ U0 @cyberia_navigate()
     vscroll1->scroll = 0;
 
     @reflow_node_list(renderer);
+    Gui.Window.SetIcon(win, @favicon_for_page(renderer));
     @fetch_images_for_page(renderer);
 
     status1->SetText("Done");
@@ -375,7 +376,7 @@ U0 @cyberia_init()
     Gui.Window.SetCallback(win, "close", &@cyberia_win_close);
     Gui.Window.SetCallback(win, "repaint", &@cyberia_win_repaint);
     Gui.Window.SetCallback(win, "mouseat", &@cyberia_win_mouseat);
-    Gui.Window.SetIcon(win, Image.FileToContext2D("M:/Applications/Internet/Cyberia.app/lain.png"));
+    Gui.Window.SetIcon(win, DEFAULT_FAVICON);
     Gui.Window.Center(win);
     Gui.Window.SetFocus(win);
 
