@@ -298,7 +298,7 @@ U0 @cyberia_win_repaint(Window*)
 
     I64 delta_z = Mouse.z - old_mouse_z;
     if (delta_z) {
-        vscroll1->scroll += delta_z;
+        vscroll1->scroll += (RENDERER_DEFAULT_MAX_LINE_HEIGHT * delta_z);
         @cyberia_vscroll_change(vscroll1);
     }
     old_mouse_z = Mouse.z;
