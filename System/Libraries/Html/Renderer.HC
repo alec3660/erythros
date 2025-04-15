@@ -67,6 +67,7 @@ class @html_renderer
     VerticalScrollBarWidget* vertical_scroll_widget;
     TextLabelWidget* status_widget;
     Context2DWidget* background_widget;
+    Context2D* background_ctx;
     Window* win;
     @window_widgets_list* widgets_base;
     @window_widgets_list* images;
@@ -414,10 +415,16 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                         node->fontSize = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
                     }
 
-                    if (!StrICmp(key->name, "font-size") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+                    if (!StrICmp(key->name, "font-size")) {
                         StrCpy(node_tmpnum_buf, values->@(0));
-                        node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->fontSize = Str2I64(node_tmpnum_buf);
+                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "em")) {
+                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                            node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+                        }
+                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                            node->fontSize = Str2I64(node_tmpnum_buf);
+                        }
                     }
 
                     if (!StrICmp(key->name, "font-family")) {
@@ -843,9 +850,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(node->tagName, "body")) {
+        renderer->background_ctx = NewContext2D(Display.Width(), Display.Height())->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
+        renderer->background_widget->ctx = renderer->background_ctx;
         renderer->background_widget->ctx->width = Display.Width();
         renderer->background_widget->ctx->height = Display.Height();
-        renderer->background_widget->ctx->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
     }
 
     if (!StrICmp(node->tagName, "form"))
@@ -917,6 +925,7 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
 
     VerticalScrollBarWidget* vscroll = renderer->vertical_scroll_widget;
 
+    renderer->background_widget->ctx = renderer->background_ctx;
     I64 origin_y = renderer->background_widget->y;
     I64 offset_y = origin_y;
     I64 line_break_max = 0;
