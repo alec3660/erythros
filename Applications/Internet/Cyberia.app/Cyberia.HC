@@ -289,7 +289,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     node_list = @html_tokenize_and_create_node_list(resp->body.data, resp->body.length, renderer->task, &images_count);
 
     // Create empty CSS rules array, traverse node tree and populate CSS rules array
-    renderer->css_rules = Json.CreateArray(renderer->task);
+    renderer->css_rules = Json.Clone(CSS_DEFAULT_RULES, renderer->task);
     renderer->forms = Json.CreateArray(renderer->task);
     @process_css_rules_from_node_list(node_list, renderer);
 

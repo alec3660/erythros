@@ -84,6 +84,13 @@ class @html_renderer
 
 #define HTML_WORK_BUFFER_SIZE 2048
 
+// Initialize CSS default rules
+JsonArray* CSS_DEFAULT_RULES = Json.CreateArray(erythros_mem_task);
+
+I64 css_default_rules_buffer_length = 0;
+U8* css_default_rules_buffer = FileRead("M:/Applications/Internet/Cyberia.app/Resources/Default.css", &css_default_rules_buffer_length);
+@css_tokenize_and_create_rules_from_buffer(CSS_DEFAULT_RULES, css_default_rules_buffer, css_default_rules_buffer_length, erythros_mem_task);
+
 U0 @html_renderer_update_status_text(HtmlRenderer* renderer, U8* text)
 {
     U8 buf[128];
