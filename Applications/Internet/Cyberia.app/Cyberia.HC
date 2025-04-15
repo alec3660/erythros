@@ -132,6 +132,10 @@ U0 @cyberia_history()
     else
         String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
 
+    renderer->background_widget->ctx = renderer->background_ctx;
+    renderer->background_widget->ctx->width = Display.Width();
+    renderer->background_widget->ctx->height = Display.Height();
+
     Gui.Window.SetTitle(renderer->win, renderer->current_title);
 
     widgets_base->next = renderer->widgets_base;
@@ -202,6 +206,11 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
+    renderer->background_ctx = NewContext2D(Display.Width(), Display.Height())->fill(Color(255, 255, 255));
+    renderer->background_widget->ctx = renderer->background_ctx;
+    renderer->background_widget->ctx->width = Display.Width();
+    renderer->background_widget->ctx->height = Display.Height();
+
     renderer->vertical_scroll_widget = vscroll1;
     renderer->win = win;
     renderer->indent = -1;

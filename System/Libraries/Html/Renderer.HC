@@ -850,10 +850,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(node->tagName, "body")) {
-        renderer->background_ctx = NewContext2D(Display.Width(), Display.Height())->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
-        renderer->background_widget->ctx = renderer->background_ctx;
-        renderer->background_widget->ctx->width = Display.Width();
-        renderer->background_widget->ctx->height = Display.Height();
+        renderer->background_ctx->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
     }
 
     if (!StrICmp(node->tagName, "form"))
