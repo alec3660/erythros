@@ -40,6 +40,7 @@ class ButtonWidget : Widget {
     BitmapFont* font;
     U8 text[1024];
     Context2D* image;
+    Context2D* disabled_image;
     U32 color;
 };
 
