@@ -6,6 +6,10 @@ Document {
     font-weight: 400;
 }
 
+code {
+    font-family: monospace
+}
+
 h1 {
     font-size: 2em;
     font-weight: bold
@@ -33,4 +37,9 @@ h5 {
 h6 {
     font-size: 0.67em;
     font-weight: bold
+}
+
+mark {
+    background-color: yellow;
+    color: black
 }
