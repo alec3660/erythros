@@ -1172,6 +1172,7 @@ I64 @get_truetype_text_width(U8* font_name, I64 size, U8* text)
     CDC* dc = DCNew(Display.Width(), (size * 2));
     Free(dc->body);
     dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), text);
+    dc->width -= 16;
     res = X2Pos(dc) - X1Pos(dc);
     DCDel(dc);
     return res;
