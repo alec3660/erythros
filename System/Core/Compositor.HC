@@ -18,8 +18,11 @@ U0 @truetype_init_fonts()
     }
     DirTreeDel(font_files);
     Fonts->set("sans-serif", Fonts->@("Free Sans"), JSON_NUMBER);
+    Fonts->set("sans-serif Bold", Fonts->@("Free Sans Bold"), JSON_NUMBER);
     Fonts->set("serif", Fonts->@("Free Serif"), JSON_NUMBER);
-    Fonts->set("monospace", Fonts->@("Free Mono"), JSON_NUMBER);
+    Fonts->set("serif Bold", Fonts->@("Free Serif Bold"), JSON_NUMBER);
+    Fonts->set("monospace", Fonts->@("Free Monospaced"), JSON_NUMBER);
+    Fonts->set("monospace Bold", Fonts->@("Free Monospaced Bold"), JSON_NUMBER);
 }
 
 @truetype_init_fonts;
