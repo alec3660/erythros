@@ -27,6 +27,7 @@ class @browser
     HtmlRenderer* renderer;
     JsonArray* bookmarks;
     JsonArray* history;
+    I64 history_index;
     JsonObject* javascript_link_handlers;
     CTask* task;
     U8* fetch_buffer;
@@ -37,9 +38,11 @@ class @browser
 };
 
 @browser* browser = CAlloc(sizeof(@browser));
-browser->renderer = CAlloc(sizeof(HtmlRenderer));
-browser->task = Fs;
+
 browser->history = Json.CreateArray(Fs);
+browser->history_index = -1;
+browser->renderer = NULL;
+browser->task = Fs;
 browser->fetch_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE);
 browser->go_to_url_string = NULL;
 browser->javascript_link_handlers = Json.CreateObject(Fs);
@@ -75,7 +78,7 @@ U8* @browser_tls_connection_state(@http_response* resp)
         return "";
     }
 }
-extern U0 @cyberia_navigate();
+extern U0 @cyberia_navigate(Bool refresh = FALSE);
 
 U0 @cyberia_link_clicked(Widget* widget)
 {
@@ -95,10 +98,74 @@ U0 @cyberia_link_clicked(Widget* widget)
 
 U0 @cyberia_refresh_clicked()
 {
-    Spawn(&@cyberia_navigate);
+    if (refreshbtn1->disabled)
+        return;
+    Spawn(&@cyberia_navigate, TRUE);
 }
 
-U0 @cyberia_navigate()
+U0 @cyberia_update_history_buttons()
+{
+    backbtn1->disabled = TRUE;
+    fwdbtn1->disabled = TRUE;
+    if (browser->history_index > 0)
+        backbtn1->disabled = FALSE;
+    if (browser->history->length - 1 > browser->history_index)
+        fwdbtn1->disabled = FALSE;
+}
+
+U0 @cyberia_history()
+{
+    win->focused_widget = NULL;
+
+    HtmlRenderer* renderer = browser->renderer = browser->history->@(browser->history_index);
+
+    HttpUrl* url = renderer->current_url;
+    StrCpy(&addressbar1->text, "");
+
+    Bool is_alternate_port = FALSE;
+    if (!StrICmp(url->scheme, "http://") && url->port != 80)
+        is_alternate_port = TRUE;
+    if (!StrICmp(url->scheme, "https://") && url->port != 443)
+        is_alternate_port = TRUE;
+    if (is_alternate_port)
+        String.Append(&addressbar1->text, "%s%s:%d%s%s", url->scheme, url->host, url->port, url->path, url->query);
+    else
+        String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
+
+    Gui.Window.SetTitle(renderer->win, renderer->current_title);
+
+    widgets_base->next = renderer->widgets_base;
+
+    @reflow_node_list(renderer);
+    Gui.Window.SetIcon(win, @favicon_for_page(renderer));
+
+    status1->SetText("Done");
+    refreshbtn1->disabled = FALSE;
+}
+
+U0 @cyberia_back_clicked()
+{
+    if (backbtn1->disabled)
+        return;
+    if (browser->history_index > 0) {
+        --browser->history_index;
+        @cyberia_update_history_buttons;
+        @cyberia_history;
+    }
+}
+
+U0 @cyberia_fwd_clicked()
+{
+    if (fwdbtn1->disabled)
+        return;
+    if (browser->history_index < browser->history->length - 1) {
+        ++browser->history_index;
+        @cyberia_update_history_buttons;
+        @cyberia_history;
+    }
+}
+
+U0 @cyberia_navigate(Bool refresh = FALSE)
 {
     win->focused_widget = NULL;
 
@@ -116,13 +183,23 @@ U0 @cyberia_navigate()
     if (!url_string || !browser || !browser->task)
         return;
 
+    if (!refresh) {
+        browser->renderer = CAlloc(sizeof(HtmlRenderer), browser->task);
+        ++browser->history_index;
+        while (browser->history->@(browser->history_index)) {
+            browser->history->remove(browser->history_index);
+        }
+        browser->history->append(browser->renderer, JSON_NUMBER);
+        @cyberia_update_history_buttons;
+    }
+
     HtmlRenderer* renderer = browser->renderer;
     MemSet(renderer, 0, sizeof(HtmlRenderer));
-    widgets_base->next = NULL;
+    widgets_base->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     renderer->images = NULL;
     renderer->link_pointer = Compositor.theme.pointer.link;
     renderer->link_callback = &@cyberia_link_clicked;
-    renderer->widgets_base = widgets_base;
+    renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
     renderer->vertical_scroll_widget = vscroll1;
@@ -257,6 +334,7 @@ U0 @cyberia_navigate()
     @fetch_images_for_page(renderer);
 
     status1->SetText("Done");
+    refreshbtn1->disabled = FALSE;
 }
 
 U0 @cyberia_win_keypress(Window* w, I64)
@@ -397,18 +475,26 @@ U0 @cyberia_init()
 
     backbtn1 = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, 0, 0, 24, 24);
     Gui.Widget.SetText(backbtn1, "");
+    Gui.Widget.SetCallback(backbtn1, "clicked", &@cyberia_back_clicked);
     backbtn1->image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/back.png");
+    backbtn1->disabled_image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/back-disabled.png");
+    backbtn1->disabled = TRUE;
     backbtn1->width = backbtn1->image->width + 8;
 
     fwdbtn1 = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, 33, 0, 24, 24);
     Gui.Widget.SetText(fwdbtn1, "");
+    Gui.Widget.SetCallback(fwdbtn1, "clicked", &@cyberia_fwd_clicked);
     fwdbtn1->image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/forward.png");
+    fwdbtn1->disabled_image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/forward-disabled.png");
+    fwdbtn1->disabled = TRUE;
     fwdbtn1->width = fwdbtn1->image->width + 8;
 
     refreshbtn1 = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, 66, 0, 24, 24);
     Gui.Widget.SetText(refreshbtn1, "");
     Gui.Widget.SetCallback(refreshbtn1, "clicked", &@cyberia_refresh_clicked);
     refreshbtn1->image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/reload.png");
+    refreshbtn1->disabled_image = @image_file_to_context2d("M:/Media/Themes/Umami/Icon/actions/reload-disabled.png");
+    refreshbtn1->disabled = TRUE;
     refreshbtn1->width = refreshbtn1->image->width + 8;
 
     background1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, 0, 36, 0, 0);
