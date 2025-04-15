@@ -710,6 +710,16 @@ Bool @code_point_is_whitespace(I32 code_point)
     }
 }
 
+@html_dom_node* @self_or_ancestor_matches_tag_name(@html_dom_node* node, U8* tagName)
+{
+    while (node) {
+        if (!StrICmp(node->tagName, tagName))
+            return node;
+        node = node->parentNode;
+    }
+    return NULL;
+}
+
 U8* @resolved_font_weight_for_node(@html_dom_node* node)
 {
     U8 buf[128];
@@ -785,7 +795,6 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
 
     U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
     U8* font_name = @resolved_font_weight_for_node(node->parentNode);
-    "font_name: %s\n", font_name;
 
     for (i = 0; i < fragment_count; i++) {
         if (fragments[i] && *fragments[i]) {
@@ -939,6 +948,24 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         @renderer_append_image(renderer, img_widget);
     }
 
+    if (!StrICmp(node->tagName, "li")) {
+        @html_dom_node* prepend_text_node = NULL;
+        if (@self_or_ancestor_matches_tag_name(node, "ol")) {
+            I64 ordered_list_index = @self_or_ancestor_matches_tag_name(node, "ol")->attributes->@("orderedListIndex") + 1;
+            @self_or_ancestor_matches_tag_name(node, "ol")->attributes->set("orderedListIndex", ordered_list_index, JSON_NUMBER);
+            prepend_text_node = @create_new_node("InternalTextNode", renderer->task);
+            prepend_text_node->parentNode = node;
+            prepend_text_node->text = CAlloc(16, renderer->task);
+            StrPrint(prepend_text_node->text, "%d.", ordered_list_index);
+            node->children->prepend(prepend_text_node);
+        } else if (@self_or_ancestor_matches_tag_name(node, "ul")) {
+            prepend_text_node = @create_new_node("InternalTextNode", renderer->task);
+            prepend_text_node->parentNode = node;
+            prepend_text_node->text = StrNew("\xe2\x80\xa2", renderer->task);
+            node->children->prepend(prepend_text_node);
+        }
+    }
+
     if (node->children->length) {
         for (i = 0; i < node->children->length; i++)
             @render_node_list(node->children->@(i), renderer);
@@ -952,16 +979,6 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     --renderer->indent;
-}
-
-@html_dom_node* @self_or_ancestor_matches_tag_name(@html_dom_node* node, U8* tagName)
-{
-    while (node) {
-        if (!StrICmp(node->tagName, tagName))
-            return node;
-        node = node->parentNode;
-    }
-    return NULL;
 }
 
 U0 @reflow_node_list(HtmlRenderer* renderer)
