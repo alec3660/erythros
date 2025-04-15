@@ -907,7 +907,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         block_widget->data = node;
     }
 
-    if (!StrICmp(node->tagName, "b")) {
+    if (!StrICmp(node->tagName, "b") || !StrICmp(node->tagName, "strong")) {
         node->fontWeight = 700;
     }
 
