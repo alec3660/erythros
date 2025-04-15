@@ -46,6 +46,7 @@ class @widget_origin
 
 class Widget {
     Bool change;
+    Bool disabled;
     I64 id;
     I64 type;
     I64 x;
