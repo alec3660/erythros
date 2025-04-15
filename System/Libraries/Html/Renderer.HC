@@ -305,6 +305,7 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
         node->color = node->parentNode->color;
         node->fontFamily = node->parentNode->fontFamily;
         node->fontSize = node->parentNode->fontSize;
+        node->fontWeight = node->parentNode->fontWeight;
         node->textAlign = node->parentNode->textAlign;
     }
 
@@ -431,6 +432,18 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                         if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
                             node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
                             node->fontSize = Str2I64(node_tmpnum_buf);
+                        }
+                    }
+
+                    if (!StrICmp(key->name, "font-weight")) {
+                        if (values->@(0)(U8*)[0] >= '0' && values->@(0)(U8*)[0] <= '9') {
+                            node->fontWeight = Str2I64(values->@(0));
+                        }
+                        if (!StrICmp(values->@(0), "bold")) {
+                            node->fontWeight = 700;
+                        }
+                        if (!StrICmp(values->@(0), "normal")) {
+                            node->fontWeight = 400;
                         }
                     }
 
@@ -697,6 +710,33 @@ Bool @code_point_is_whitespace(I32 code_point)
     }
 }
 
+U8* @resolved_font_weight_for_node(@html_dom_node* node)
+{
+    U8 buf[128];
+    if (!node || !node->fontFamily || !StrLen(node->fontFamily))
+        return;
+    switch (node->fontWeight) {
+    case 700:
+    case 800:
+    case 900:
+        if (!StrICmp(node->fontFamily + StrLen(node->fontFamily) - 4, "bold")) {
+            return node->fontFamily;
+        } else {
+            StrPrint(buf, "%s Bold", node->fontFamily);
+            if (Fonts->@(buf)) {
+                return StrNew(buf, erythros_mem_task);
+            } else {
+                // Can't find Bold variant, return Normal
+                return node->fontFamily;
+            }
+        }
+        break;
+    default:
+        return node->fontFamily;
+        break;
+    }
+}
+
 U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !renderer || !node->text || !StrLen(node->text))
@@ -744,16 +784,18 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     Context2DWidget* fragment_widget;
 
     U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
+    U8* font_name = @resolved_font_weight_for_node(node->parentNode);
+    "font_name: %s\n", font_name;
 
     for (i = 0; i < fragment_count; i++) {
         if (fragments[i] && *fragments[i]) {
-            text_width = @get_truetype_text_width(node->parentNode->fontFamily, node->parentNode->fontSize, fragments[i]);
+            text_width = @get_truetype_text_width(font_name, node->parentNode->fontSize, fragments[i]);
             if (text_width) {
                 text_width += 4;
                 fragment_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
-                fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(node->parentNode->fontFamily, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
+                fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
 
                 if (renderer->debug && fragment_widget->ctx) {
                     fragment_widget->ctx->line(0, 0, fragment_widget->ctx->width - 1, 0, fragment_bounding_box_color);
@@ -845,8 +887,8 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
         for (i = 0; i < renderer->indent; i++)
             "  ";
-        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, display_block: %d\n",
-            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->display_block;
+        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display_block: %d\n",
+            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, node->display_block;
     }
 
     // Insert a block widget for the element's opening tag
@@ -854,6 +896,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
         block_widget->data = node;
+    }
+
+    if (!StrICmp(node->tagName, "b")) {
+        node->fontWeight = 700;
     }
 
     if (!StrICmp(node->tagName, "body")) {
