@@ -64,7 +64,7 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
         Color(96, 96, 96, win->opacity));
     Line2D(win->render_ctx, x + widget->width - 1, y + 1, x + widget->width - 1,
         y + widget->height - 2, Color(96, 96, 96, win->opacity));
-    if (widget == win->mouse_down_widget && Mouse.left &&
+    if (!widget->disabled && widget == win->mouse_down_widget && Mouse.left &&
         @widget_is_hovered(win->x + x, win->y + y, widget)) {
 
         if (widget->image) {
@@ -92,7 +92,7 @@ U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
     } else {
 
         if (widget->image) {
-            MemCpy(&tmpctx, widget->image, sizeof(Context2D));
+            MemCpy(&tmpctx, @t(widget->disabled, widget->disabled_image, widget->image), sizeof(Context2D));
             tmpctx.opacity = win->opacity;
             ctx->blot(x + 4, y + 4, &tmpctx);
         }
