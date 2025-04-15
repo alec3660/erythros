@@ -307,6 +307,7 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
         node->fontSize = node->parentNode->fontSize;
         node->fontWeight = node->parentNode->fontWeight;
         node->textAlign = node->parentNode->textAlign;
+        node->italic = node->parentNode->italic;
     }
 
     for (i = 0; i < renderer->css_rules->length; i++) {
@@ -462,6 +463,12 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                                 }
                                 font_key = font_key->next;
                             }
+                        }
+                    }
+
+                    if (!StrICmp(key->name, "font-style")) {
+                        if (!StrICmp(values->@(0), "italic")) {
+                            node->italic = TRUE;
                         }
                     }
                 css_continue_to_next_property:
@@ -720,31 +727,31 @@ Bool @code_point_is_whitespace(I32 code_point)
     return NULL;
 }
 
-U8* @resolved_font_weight_for_node(@html_dom_node* node)
+U8* @resolved_font_name_for_node(@html_dom_node* node)
 {
-    U8 buf[128];
     if (!node || !node->fontFamily || !StrLen(node->fontFamily))
-        return;
-    switch (node->fontWeight) {
-    case 700:
-    case 800:
-    case 900:
-        if (!StrICmp(node->fontFamily + StrLen(node->fontFamily) - 4, "bold")) {
-            return node->fontFamily;
-        } else {
-            StrPrint(buf, "%s Bold", node->fontFamily);
-            if (Fonts->@(buf)) {
-                return StrNew(buf, erythros_mem_task);
-            } else {
-                // Can't find Bold variant, return Normal
-                return node->fontFamily;
-            }
+        return NULL;
+
+    U8* font_name_with_weight_applied = node->fontFamily;
+    U8 buf[128];
+
+    // Handle font weight
+    if (node->fontWeight >= 700 && StrICmp(node->fontFamily + StrLen(node->fontFamily) - 4, "bold")) {
+        StrPrint(buf, "%s Bold", node->fontFamily);
+        if (Fonts->@(buf)) {
+            font_name_with_weight_applied = StrNew(buf, erythros_mem_task);
         }
-        break;
-    default:
-        return node->fontFamily;
-        break;
     }
+
+    // Handle italic
+    if (node->italic) {
+        StrPrint(buf, "%s Italic", font_name_with_weight_applied);
+        if (Fonts->@(buf)) {
+            return StrNew(buf, erythros_mem_task);
+        }
+    }
+
+    return font_name_with_weight_applied;
 }
 
 U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
@@ -794,7 +801,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     Context2DWidget* fragment_widget;
 
     U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
-    U8* font_name = @resolved_font_weight_for_node(node->parentNode);
+    U8* font_name = @resolved_font_name_for_node(node->parentNode);
 
     for (i = 0; i < fragment_count; i++) {
         if (fragments[i] && *fragments[i]) {
@@ -909,6 +916,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     if (!StrICmp(node->tagName, "b") || !StrICmp(node->tagName, "strong")) {
         node->fontWeight = 700;
+    }
+
+    if (!StrICmp(node->tagName, "i") || !StrICmp(node->tagName, "em")) {
+        node->italic = TRUE;
     }
 
     if (!StrICmp(node->tagName, "body")) {
