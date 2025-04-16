@@ -18,6 +18,7 @@ class @css_tokenizer
     I64 size;
     I64 state;
     I64 previous_state;
+    I64 in_quote_char;
     CFifoU8* match_fifo;
     CFifoU8* property_fifo;
     CFifoU8* value_fifo;
@@ -46,6 +47,7 @@ U0 @css_init_tokenizer(@css_tokenizer* t, U8* buffer, I64 size, CTask* mem_task 
 {
     t->buffer = buffer;
     t->pos = 0;
+    t->in_quote_char = 0;
     t->size = size;
     t->state = CSS_TOKENIZER_STATE_CONSUME_MATCH;
     t->match_fifo = FifoU8New(1024);
@@ -124,7 +126,23 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             break;
         case CSS_TOKENIZER_STATE_CONSUME_VALUE:
             switch (token) {
+            case '\'':
+            case '"':
+                if (t.in_quote_char == token) {
+                    t.in_quote_char = NULL;
+                    FifoU8Ins(t.value_fifo, token);
+                    goto @css_tokenizer_continue;
+                }
+                if (!t.in_quote_char) {
+                    t.in_quote_char = token;
+                }
+                FifoU8Ins(t.value_fifo, token);
+                goto @css_tokenizer_continue;
             case '/':
+                if (t.in_quote_char) {
+                    FifoU8Ins(t.value_fifo, token);
+                    goto @css_tokenizer_continue;
+                }
                 if (t.buffer[t.pos + 1] == '*') {
                     ++t.pos;
                     t.previous_state = t.state;
@@ -136,10 +154,18 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             case '\r':
             case '\n':
             case ',':
+                if (t.in_quote_char) {
+                    FifoU8Ins(t.value_fifo, token);
+                    goto @css_tokenizer_continue;
+                }
                 if (FifoU8Cnt(t.value_fifo))
                     @css_try_append_value(&t);
                 break;
             case '}':
+                if (t.in_quote_char) {
+                    FifoU8Ins(t.value_fifo, token);
+                    goto @css_tokenizer_continue;
+                }
                 @css_try_append_value(&t);
                 if (FifoU8Cnt(t.property_fifo))
                     @css_try_set_property(&t);
@@ -150,6 +176,10 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
                 t.state = CSS_TOKENIZER_STATE_CONSUME_MATCH;
                 goto @css_tokenizer_continue;
             case ';':
+                if (t.in_quote_char) {
+                    FifoU8Ins(t.value_fifo, token);
+                    goto @css_tokenizer_continue;
+                }
                 @css_try_append_value(&t);
                 if (FifoU8Cnt(t.property_fifo))
                     @css_try_set_property(&t);
