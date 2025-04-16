@@ -78,6 +78,7 @@ class @html_renderer
     I64 calculated_page_height;
     Context2D* link_pointer;
     U64 link_callback;
+    U64 form_submit_callback;
 };
 
 #define HtmlRenderer @html_renderer
@@ -616,6 +617,8 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
 
     U8* type = node->attributes->@("type");
     U8* value = node->attributes->@("value");
+    I64 width;
+    I64 height;
 
     if (!type)
         return;
@@ -625,36 +628,74 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     CheckBoxWidget* cb = NULL;
 
     if (!StrICmp(type, "checkbox")) {
-        cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, 14, 14); // FIXME: Derive width/height
+        if (!node->width)
+            width = 14;
+        if (!node->height)
+            height = 14;
+        cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         cb->checked = node->attributes->@("checked");
         cb->data = node;
         return;
     }
 
     if (!StrICmp(type, "button")) {
-        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        if (!node->width)
+            width = 64;
+        if (!node->height)
+            height = 16;
+        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
         StrCpy(&btn->text, @t(value, value, ""));
         return;
     }
 
     if (!StrICmp(type, "submit")) {
-        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        if (!node->width)
+            width = 64;
+        if (!node->height)
+            height = 16;
+        btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
-        // FIXME: Gui.Widget.SetCallback(btn, "clicked", &@form_submit_callback);
+        Gui.Widget.SetCallback(btn, "clicked", renderer->form_submit_callback);
         StrCpy(&btn->text, @t(value, value, "Submit"));
         return;
     }
 
     if (!type || !StrICmp(type, "text")) {
-        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        if (!node->width)
+            width = 64;
+        if (!node->height)
+            height = 16;
+        if (node->attributes->@("width")) {
+            width = 8 * Str2I64(node->attributes->@("width"));
+        }
+        if (node->attributes->@("size")) {
+            width = 8 * Str2I64(node->attributes->@("size"));
+        }
+        if (node->attributes->@("height")) {
+            width = 16 * Str2I64(node->attributes->@("height"));
+        }
+        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
         return;
     }
 
     if (!StrICmp(type, "password")) {
-        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, 64, 16); // FIXME: Derive width/height
+        if (!node->width)
+            width = 64;
+        if (!node->height)
+            height = 16;
+        if (node->attributes->@("width")) {
+            width = 8 * Str2I64(node->attributes->@("width"));
+        }
+        if (node->attributes->@("size")) {
+            width = 8 * Str2I64(node->attributes->@("size"));
+        }
+        if (node->attributes->@("height")) {
+            width = 16 * Str2I64(node->attributes->@("height"));
+        }
+        input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         input->is_password = TRUE;
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
