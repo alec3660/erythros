@@ -692,6 +692,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
         node->attributes->set("cyberiaGuiWidget", input, JSON_NUMBER);
+        if (node->attributes->@("autofocus")) {
+            renderer->win->focused_widget = input;
+        }
         return;
     }
 
@@ -714,6 +717,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
         node->attributes->set("cyberiaGuiWidget", input, JSON_NUMBER);
+        if (node->attributes->@("autofocus")) {
+            renderer->win->focused_widget = input;
+        }
         return;
     }
 }
