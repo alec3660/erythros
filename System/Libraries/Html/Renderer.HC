@@ -378,8 +378,14 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                 for (j = 0; j < properties->length; j++) {
                     values = properties->@(key->name);
 
-                    if (!StrICmp(key->name, "display") && !StrICmp(values->@(0), "none"))
-                        return FALSE;
+                    if (!StrICmp(key->name, "display")) {
+                        if (!StrICmp(values->@(0), "none")) {
+                            return FALSE;
+                        }
+                        if (StrICmp(values->@(0), "block")) {
+                            node->display_block = FALSE;
+                        }
+                    }
 
                     if (!StrICmp(key->name, "background") || !StrICmp(key->name, "background-color")) {
                         if (@css_named_colors->@(values->@(0))) {
