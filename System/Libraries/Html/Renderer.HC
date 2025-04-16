@@ -645,6 +645,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         cb->checked = node->attributes->@("checked");
         cb->data = node;
+        node->attributes->set("cyberiaGuiWidget", cb, JSON_NUMBER);
         return;
     }
 
@@ -656,6 +657,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
         StrCpy(&btn->text, @t(value, value, ""));
+        node->attributes->set("cyberiaGuiWidget", btn, JSON_NUMBER);
         return;
     }
 
@@ -668,6 +670,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         btn->data = node;
         Gui.Widget.SetCallback(btn, "clicked", renderer->form_submit_callback);
         StrCpy(&btn->text, @t(value, value, "Submit"));
+        node->attributes->set("cyberiaGuiWidget", btn, JSON_NUMBER);
         return;
     }
 
@@ -688,6 +691,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         input = Gui.CreateWidget(renderer->win, WIDGET_TYPE_INPUT, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
+        node->attributes->set("cyberiaGuiWidget", input, JSON_NUMBER);
         return;
     }
 
@@ -709,6 +713,7 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
         input->is_password = TRUE;
         input->data = node;
         StrCpy(&input->text, @t(value, value, ""));
+        node->attributes->set("cyberiaGuiWidget", input, JSON_NUMBER);
         return;
     }
 }
