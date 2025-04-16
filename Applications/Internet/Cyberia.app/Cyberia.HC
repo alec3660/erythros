@@ -178,16 +178,30 @@ U0 @cyberia_collect_form_nodes(JsonArray* array, @html_dom_node* node)
     }
 }
 
-U0 @cyberia_form_submit_clicked(Widget* widget)
+I64 @cyberia_count_text_input_elements(@html_dom_node* node)
 {
-    if (!widget || !widget->data)
-        return;
+    I64 count = 0;
+    if (!node)
+        return count;
 
-    @html_dom_node* form_node = @self_or_ancestor_matches_tag_name(widget->data, "form");
+    if (!StrICmp(node->tagName, "input") && (!node->attributes->@("type") || (!StrICmp(node->attributes->@("type"), "text") || !StrICmp(node->attributes->@("type"), "password"))))
+        ++count;
 
-    if (!form_node)
-        return;
+    I64 i;
+    if (node->children->length) {
+        for (i = 0; i < node->children->length; i++)
+            count += @cyberia_count_text_input_elements(node->children->@(i));
+    }
+    return count;
+}
 
+Bool @cyberia_form_has_one_text_input_element(@html_dom_node* form_node)
+{
+    return @cyberia_count_text_input_elements(form_node);
+}
+
+U0 @cyberia_form_submit(@html_dom_node* form_node)
+{
     if (!form_node->attributes->@("method"))
         form_node->attributes->set("method", "get", JSON_STRING);
 
@@ -199,11 +213,8 @@ U0 @cyberia_form_submit_clicked(Widget* widget)
     U8* action = @resolve_href(browser->renderer, form_node->attributes->@("action"));
     @html_dom_node* element_node;
 
-    "method: \"%s\", action: \"%s\"\n", method, action;
-
     JsonArray* form_elements = Json.CreateArray(browser->renderer->task);
     @cyberia_collect_form_nodes(form_elements, form_node);
-    "form element count: %d\n", form_elements->length;
 
     U8 get_request_str[1024];
 
@@ -243,11 +254,23 @@ U0 @cyberia_form_submit_clicked(Widget* widget)
             }
         }
         StrCpy(&addressbar1->text, &get_request_str);
-        "get_request_str: %s\n", get_request_str;
     }
 
     Free(action);
     Spawn(&@cyberia_navigate);
+}
+
+U0 @cyberia_form_submit_clicked(Widget* widget)
+{
+    if (!widget || !widget->data)
+        return;
+
+    @html_dom_node* form_node = @self_or_ancestor_matches_tag_name(widget->data, "form");
+
+    if (!form_node)
+        return;
+
+    @cyberia_form_submit(form_node);
 }
 
 U0 @cyberia_refresh_clicked()
@@ -494,8 +517,30 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
 
 U0 @cyberia_win_keypress(Window* w, I64)
 {
-    if (w->focused_widget == addressbar1 && KeyDown(SC_ENTER)) {
+    if (!w || !w->focused_widget || !KeyDown(SC_ENTER))
+        return;
+
+    if (w->focused_widget == addressbar1) {
         Spawn(&@cyberia_navigate);
+        return;
+    }
+
+    @html_dom_node* node = w->focused_widget->data;
+
+    if (!node)
+        return;
+    if (StrICmp(node->tagName, "input"))
+        return;
+    if (node->attributes->@("type") && (StrICmp(node->attributes->@("type"), "text") && StrICmp(node->attributes->@("type"), "password")))
+        return;
+
+    @html_dom_node* form_node = @self_or_ancestor_matches_tag_name(node, "form");
+    if (!form_node)
+        return;
+
+    // If we are the only text input element, submit the form
+    if (@cyberia_form_has_one_text_input_element(form_node)) {
+        @cyberia_form_submit(form_node);
     }
 }
 
@@ -659,7 +704,7 @@ U0 @cyberia_init()
     vscroll1 = Gui.CreateWidget(win, WIDGET_TYPE_VERT_SCROLLBAR, -99999, -99999, 0, 0);
     Gui.Widget.SetCallback(vscroll1, "change", &@cyberia_vscroll_change);
 
-    addressbar1 = Gui.CreateWidget(win, WIDGET_TYPE_INPUT, 99, 6, 320, 16);
+    addressbar1 = Gui.CreateWidget(win, WIDGET_TYPE_INPUT, 100, 6, 320, 16);
     Gui.Widget.SetFont(addressbar1, "Eight Bit Dragon");
     Gui.Widget.SetCallback(addressbar1, "clicked", &@cyberia_addressbar_clicked);
     Gui.Window.SetCallback(win, "keypress", &@cyberia_win_keypress);
