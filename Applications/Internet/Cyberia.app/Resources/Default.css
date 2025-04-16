@@ -6,6 +6,11 @@ Document {
     font-weight: 400;
 }
 
+a {
+    color: #0000ee;
+    text-decoration: underline
+}
+
 code {
     font-family: monospace
 }
