@@ -1021,6 +1021,7 @@ U0 @tokenizer_html_state_after_attribute_name(@html_tokenizer* t)
     */
     case '/':
         // Switch to the self-closing start tag state.
+        @set_current_attribute_on_current_node(t);
         t->state = HTML_STATE_SELF_CLOSING_START_TAG;
         break;
     case '=':
