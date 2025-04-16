@@ -12,6 +12,7 @@ U8* previous_hovered_href = NULL;
 ButtonWidget* backbtn1 = NULL;
 ButtonWidget* fwdbtn1 = NULL;
 ButtonWidget* refreshbtn1 = NULL;
+ButtonWidget* hanbagabtn1 = NULL;
 Context2DWidget* background1 = NULL;
 TextInputWidget* addressbar1 = NULL;
 
@@ -21,6 +22,11 @@ TextInputWidget* addressbar1 = NULL;
 I64 old_window_width = -1;
 I64 old_window_height = -1;
 I64 old_mouse_z = Mouse.z;
+
+Window* hanbaga_menu = Menu.New("Cyberia");
+Menu.AddItem(hanbaga_menu, "New Tab", NULL, &Reboot, NULL, NULL);
+Menu.AddItem(hanbaga_menu, "New Window", NULL, NULL, NULL, NULL);
+Menu.AddItem(hanbaga_menu, "New Private Window", NULL, NULL, NULL, NULL);
 
 class @browser
 {
@@ -143,6 +149,15 @@ U8* @browser_tls_connection_state(@http_response* resp)
     }
 }
 extern U0 @cyberia_navigate(Bool refresh = FALSE);
+
+U0 @cyberia_hanbaga_show(Widget* widget)
+{
+    hanbaga_menu->x = win->x + win->width - hanbaga_menu->width - 5;
+    hanbaga_menu->y = win->y + hanbagabtn1->y + hanbagabtn1->height + 24;
+    Gui.Window.Show(hanbaga_menu);
+    Gui.Window.SetFocus(hanbaga_menu);
+    Gui.Window.Refresh(hanbaga_menu);
+}
 
 U0 @cyberia_link_clicked(Widget* widget)
 {
@@ -492,6 +507,9 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     append->next->widget = refreshbtn1;
     append = append->next;
     append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
+    append->next->widget = hanbagabtn1;
+    append = append->next;
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = addressbar1;
     append = append->next;
     append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
@@ -563,7 +581,8 @@ U0 @cyberia_win_repaint(Window*)
     if (!win || !addressbar1 || !background1 || !vscroll1 || !status1 || !statusbackdrop1)
         return;
 
-    addressbar1->width = win->width - 110;
+    hanbagabtn1->x = win->width - hanbagabtn1->width - 9;
+    addressbar1->width = hanbagabtn1->x - addressbar1->x - 3;
     background1->width = 0;
     background1->height = 0;
     background1->ctx->width = win->width;
@@ -697,6 +716,12 @@ U0 @cyberia_init()
     refreshbtn1->disabled = TRUE;
     refreshbtn1->width = refreshbtn1->image->width + 8;
 
+    hanbagabtn1 = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, U64_MAX, 0, 24, 24);
+    Gui.Widget.SetText(hanbagabtn1, "");
+    Gui.Widget.SetCallback(hanbagabtn1, "clicked", &@cyberia_hanbaga_show);
+    hanbagabtn1->image = @image_file_to_context2d("M:/Applications/Internet/Cyberia.app/Resources/hanbaga.png");
+    hanbagabtn1->width = hanbagabtn1->image->width + 8;
+
     background1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, 0, 36, 0, 0);
     background1->ctx = NewContext2D(Display.Width(), Display.Height());
     background1->ctx->fill(Color(255, 255, 255));
@@ -722,8 +747,11 @@ U0 @cyberia_init()
 
 U0 Main()
 {
-    while (1)
+    while (1) {
+        if (Compositor.active_win != hanbaga_menu && Gui.Window.IsVisible(hanbaga_menu))
+            Gui.Window.Hide(hanbaga_menu);
         Sleep(1);
+    }
 }
 
 Main;
