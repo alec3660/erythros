@@ -995,7 +995,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (!StrICmp(node->tagName, "body")) {
         renderer->background_ctx->width = Display.Width();
         renderer->background_ctx->height = Display.Height();
-        renderer->background_ctx->fill(@image_pixel_flip_rgb_bgr(node->backgroundColor));
+        renderer->background_ctx->fill(node->backgroundColor);
     }
 
     if (!StrICmp(node->tagName, "form"))
