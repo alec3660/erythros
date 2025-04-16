@@ -37,17 +37,81 @@ class @browser
     U8* search_query;
 };
 
-@browser* browser = CAlloc(sizeof(@browser));
+@browser* browser = CAlloc(sizeof(@browser), Fs);
+
+I64 @cyberia_is_alphanum(I64 c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+}
+
+U8* @cyberia_urlencode_str(U8* str, I64* output_len)
+{
+    if (str == NULL) {
+        return NULL;
+    }
+
+    I64 len = StrLen(str);
+    U8* encoded_str = NULL;
+    U8* dest;
+    I64 encoded_len = 0;
+    U8* p;
+    I64 c;
+    Bool contains_plus = FALSE;
+
+    // First pass: calculate the exact required length
+    p = str;
+    while (*p) {
+        c = *p;
+        // Check if the character should NOT be encoded
+        if (@cyberia_is_alphanum(c) || c == '-' || c == '_' || c == '.') {
+            encoded_len++;
+        } else if (c == ' ') {
+            encoded_len++; // Will be replaced by '+'
+            contains_plus = TRUE;
+        } else {
+            encoded_len += 3; // Will be replaced by %XX
+        }
+        ++p;
+    }
+
+    *output_len = encoded_len;
+
+    if (encoded_len == StrLen(str) && !contains_plus)
+        return str;
+
+    // Allocate memory for the encoded string + null terminator
+    encoded_str = CAlloc(encoded_len + 1, browser->task);
+    if (!encoded_str)
+        return NULL;
+
+    // Second pass: build the encoded string
+    dest = encoded_str;
+    p = str;
+    while (*p) {
+        c = *p;
+        if (@cyberia_is_alphanum(c) || c == '-' || c == '_' || c == '.') {
+            *dest++ = c;
+        } else if (c == ' ') {
+            *dest++ = '+';
+        } else {
+            StrPrint(dest, "%%%02X", c);
+            dest += 3;
+        }
+        ++p;
+    }
+    *dest = '\0';
+    return encoded_str;
+}
 
 browser->history = Json.CreateArray(Fs);
 browser->history_index = -1;
 browser->renderer = NULL;
 browser->task = Fs;
-browser->fetch_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE);
+browser->fetch_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
 browser->go_to_url_string = NULL;
 browser->javascript_link_handlers = Json.CreateObject(Fs);
-browser->lazyload_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE);
-browser->lazyload_timeout_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE);
+browser->lazyload_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
+browser->lazyload_timeout_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
 
 U0 @cyberia_win_close(Window* win)
 {
@@ -93,6 +157,96 @@ U0 @cyberia_link_clicked(Widget* widget)
         return;
     StrCpy(&addressbar1->text, resolved_href);
     Free(resolved_href);
+    Spawn(&@cyberia_navigate);
+}
+
+U0 @cyberia_collect_form_nodes(JsonArray* array, @html_dom_node* node)
+{
+    if (!array || !node)
+        return;
+
+    if (!StrICmp(node->tagName, "input") || !StrICmp(node->tagName, "textarea")) {
+        if (node->attributes->@("name")) {
+            array->append(node, JSON_NUMBER);
+        }
+    }
+
+    I64 i;
+    if (node->children->length) {
+        for (i = 0; i < node->children->length; i++)
+            @cyberia_collect_form_nodes(array, node->children->@(i));
+    }
+}
+
+U0 @cyberia_form_submit_clicked(Widget* widget)
+{
+    if (!widget || !widget->data)
+        return;
+
+    @html_dom_node* form_node = @self_or_ancestor_matches_tag_name(widget->data, "form");
+
+    if (!form_node)
+        return;
+
+    if (!form_node->attributes->@("method"))
+        form_node->attributes->set("method", "get", JSON_STRING);
+
+    if (!form_node->attributes->@("action"))
+        form_node->attributes->set("action", "#", JSON_STRING);
+
+    I64 i;
+    U8* method = form_node->attributes->@("method");
+    U8* action = @resolve_href(browser->renderer, form_node->attributes->@("action"));
+    @html_dom_node* element_node;
+
+    "method: \"%s\", action: \"%s\"\n", method, action;
+
+    JsonArray* form_elements = Json.CreateArray(browser->renderer->task);
+    @cyberia_collect_form_nodes(form_elements, form_node);
+    "form element count: %d\n", form_elements->length;
+
+    U8 get_request_str[1024];
+
+    if (!StrICmp(method, "get")) {
+        StrPrint(get_request_str, "%s?", action);
+        for (i = 0; i < form_elements->length; i++) {
+            element_node = form_elements->@(i);
+            U8* name = element_node->attributes->@("name");
+            U8* raw_value = "";
+            U8* encoded_value = NULL;
+            I64 encoded_value_length = 0;
+            Widget* element_gui_widget = element_node->attributes->@("cyberiaGuiWidget");
+            switch (element_gui_widget->type) {
+            case WIDGET_TYPE_CHECKBOX:
+                if (element_gui_widget(CheckBoxWidget*)->checked) {
+                    raw_value = @t(element_node->attributes->@("value"), element_node->attributes->@("value"), "on");
+                } else {
+                    raw_value = NULL;
+                }
+                break;
+            case WIDGET_TYPE_INPUT:
+                raw_value = &element_gui_widget(TextInputWidget*)->text;
+                break;
+            default:
+                break;
+            }
+
+            encoded_value = @cyberia_urlencode_str(raw_value, &encoded_value_length);
+
+            if (encoded_value) {
+                String.Append(get_request_str, "%s=%s", name, encoded_value);
+                if (i < form_elements->length - 1)
+                    String.Append(get_request_str, "&");
+                if (encoded_value_length != StrLen(raw_value)) {
+                    Free(encoded_value);
+                }
+            }
+        }
+        StrCpy(&addressbar1->text, &get_request_str);
+        "get_request_str: %s\n", get_request_str;
+    }
+
+    Free(action);
     Spawn(&@cyberia_navigate);
 }
 
@@ -203,6 +357,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->images = NULL;
     renderer->link_pointer = Compositor.theme.pointer.link;
     renderer->link_callback = &@cyberia_link_clicked;
+    renderer->form_submit_callback = &@cyberia_form_submit_clicked;
     renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
@@ -280,7 +435,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
             return;
         StrCpy(&addressbar1->text, resolved_location);
         Free(resolved_location);
-        @cyberia_navigate;
+        @cyberia_navigate(1);
         return;
     }
 
@@ -301,31 +456,31 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     while (append->next) {
         append = append->next;
     }
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = controlsbackdrop1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = backbtn1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = fwdbtn1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = refreshbtn1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = addressbar1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = statusbackdrop1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = status1;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = status2;
     append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list));
+    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
     append->next->widget = vscroll1;
     vscroll1->scroll = 0;
 
