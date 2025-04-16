@@ -1162,6 +1162,24 @@ I64 X2Pos(CDC* src)
     return -1;
 }
 
+I64 Y2Pos(CDC* src)
+{
+    I64 x = src->width - 1;
+    I64 y = src->height - 1;
+    I64 color;
+    while (y > -1) {
+        x = src->width - 1;
+        while (x > -1) {
+            color = GrPeek(src, x, y);
+            if (color)
+                return y;
+            x--;
+        }
+        y--;
+    }
+    return -1;
+}
+
 I64 @get_truetype_text_width(U8* font_name, I64 size, U8* text)
 {
     stbtt_fontinfo* font = Fonts->@(font_name);
@@ -1174,6 +1192,26 @@ I64 @get_truetype_text_width(U8* font_name, I64 size, U8* text)
     dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), text);
     dc->width -= 16;
     res = X2Pos(dc) - X1Pos(dc);
+    DCDel(dc);
+    return res;
+}
+
+I64 @get_truetype_baseline(U8* font_name, I64 size)
+{
+    stbtt_fontinfo* font = Fonts->@(font_name);
+    if (!font) {
+        return 0;
+    }
+    I64 res = 0;
+    CDC* dc = DCNew(Display.Width() / 2, (size * 2));
+    Free(dc->body);
+    I32 i32char[16];
+    MemSet(&i32char, NULL, 16);
+    i32char[0] = 'o';
+    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), &i32char);
+    dc->width -= 16;
+    dc->height -= size / 4;
+    res = Y2Pos(dc);
     DCDel(dc);
     return res;
 }

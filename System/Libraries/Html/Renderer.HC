@@ -308,6 +308,7 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
         node->fontSize = node->parentNode->fontSize;
         node->fontWeight = node->parentNode->fontWeight;
         node->textAlign = node->parentNode->textAlign;
+        node->textDecoration = node->parentNode->textDecoration;
         node->italic = node->parentNode->italic;
     }
 
@@ -424,6 +425,15 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                         node->textAlign = CSS_TEXT_ALIGN_CENTER;
                     if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "right"))
                         node->textAlign = CSS_TEXT_ALIGN_RIGHT;
+
+                    if (!StrICmp(key->name, "text-decoration")) {
+                        if (!StrICmp(values->@(0), "none")) {
+                            node->textDecoration = 0;
+                        }
+                        if (!StrICmp(values->@(0), "underline")) {
+                            node->textDecoration = CSS_TEXT_UNDERLINE;
+                        }
+                    }
 
                     if (!StrICmp(key->name, "line-height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
                         StrCpy(node_tmpnum_buf, values->@(0));
@@ -849,6 +859,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
 
     U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
     U8* font_name = @resolved_font_name_for_node(node->parentNode);
+    I64 underline_y_pos = -1;
 
     for (i = 0; i < fragment_count; i++) {
         if (fragments[i] && *fragments[i]) {
@@ -859,6 +870,18 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
                 fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
+
+                switch (node->parentNode->textDecoration) {
+                case CSS_TEXT_UNDERLINE:
+                    if (underline_y_pos < 0)
+                        underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 2;
+                    if (!(underline_y_pos < 0)) {
+                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width, underline_y_pos, node->parentNode->color);
+                    }
+                    break;
+                default:
+                    break;
+                }
 
                 if (renderer->debug && fragment_widget->ctx) {
                     fragment_widget->ctx->line(0, 0, fragment_widget->ctx->width - 1, 0, fragment_bounding_box_color);

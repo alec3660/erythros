@@ -97,6 +97,7 @@ class @html_dom_node : JsonElement
     U8* fontFamily;
     I64 fontSize;
     I64 fontWeight;
+    I64 textDecoration;
     Bool italic;
     Bool display_block;
 };
