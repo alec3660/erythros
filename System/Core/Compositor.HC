@@ -17,18 +17,34 @@ U0 @truetype_init_fonts()
         de = de->next;
     }
     DirTreeDel(font_files);
-    Fonts->set("sans-serif", Fonts->@("Free Sans"), JSON_NUMBER);
-    Fonts->set("sans-serif Bold", Fonts->@("Free Sans Bold"), JSON_NUMBER);
-    Fonts->set("sans-serif Bold Italic", Fonts->@("Free Sans Bold Oblique"), JSON_NUMBER);
-    Fonts->set("sans-serif Italic", Fonts->@("Free Sans Oblique"), JSON_NUMBER);
-    Fonts->set("serif", Fonts->@("Free Serif"), JSON_NUMBER);
-    Fonts->set("serif Bold", Fonts->@("Free Serif Bold"), JSON_NUMBER);
-    Fonts->set("serif Bold Italic", Fonts->@("Free Serif Bold Italic"), JSON_NUMBER);
-    Fonts->set("serif Italic", Fonts->@("Free Serif Italic"), JSON_NUMBER);
-    Fonts->set("monospace", Fonts->@("Free Monospaced"), JSON_NUMBER);
-    Fonts->set("monospace Bold", Fonts->@("Free Monospaced Bold"), JSON_NUMBER);
-    Fonts->set("monospace Bold Italic", Fonts->@("Free Monospaced Bold Oblique"), JSON_NUMBER);
-    Fonts->set("monospace Italic", Fonts->@("Free Monospaced Oblique"), JSON_NUMBER);
+    JsonObject* default_font_names = config->o("default")->o("fonts");
+
+    Fonts->set("sans-serif",
+        Fonts->@(default_font_names->o("sans_serif")->@("regular")), JSON_NUMBER);
+    Fonts->set("sans-serif Bold",
+        Fonts->@(default_font_names->o("sans_serif")->@("bold")), JSON_NUMBER);
+    Fonts->set("sans-serif Bold Italic",
+        Fonts->@(default_font_names->o("sans_serif")->@("bold_italic")), JSON_NUMBER);
+    Fonts->set("sans-serif Italic",
+        Fonts->@(default_font_names->o("sans_serif")->@("italic")), JSON_NUMBER);
+
+    Fonts->set("serif",
+        Fonts->@(default_font_names->o("serif")->@("regular")), JSON_NUMBER);
+    Fonts->set("serif Bold",
+        Fonts->@(default_font_names->o("serif")->@("bold")), JSON_NUMBER);
+    Fonts->set("serif Bold Italic",
+        Fonts->@(default_font_names->o("serif")->@("bold_italic")), JSON_NUMBER);
+    Fonts->set("serif Italic",
+        Fonts->@(default_font_names->o("serif")->@("italic")), JSON_NUMBER);
+
+    Fonts->set("monospace",
+        Fonts->@(default_font_names->o("monospace")->@("regular")), JSON_NUMBER);
+    Fonts->set("monospace Bold",
+        Fonts->@(default_font_names->o("monospace")->@("bold")), JSON_NUMBER);
+    Fonts->set("monospace Bold Italic",
+        Fonts->@(default_font_names->o("monospace")->@("bold_italic")), JSON_NUMBER);
+    Fonts->set("monospace Italic",
+        Fonts->@(default_font_names->o("monospace")->@("italic")), JSON_NUMBER);
 }
 
 @truetype_init_fonts;
