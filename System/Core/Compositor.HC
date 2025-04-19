@@ -1,9 +1,10 @@
-U0 @truetype_init_fonts()
+U0 @compositor_init_truetype_fonts()
 {
     CDirEntry* font_files = FilesFind("M:/Fonts/*.ttf");
     CDirEntry* de = font_files;
     stbtt_fontinfo* info;
     U8 name_buffer[512];
+    U8 log_buffer[512];
     U8* name_ptr;
     I32 length;
     while (de) {
@@ -12,6 +13,8 @@ U0 @truetype_init_fonts()
             MemSet(name_buffer, NULL, 512);
             name_ptr = @stbtt_GetFontNameDefault(info, &length);
             MemCpy(name_buffer, name_ptr, length);
+            StrPrint(log_buffer, "Added Truetype font: %s", name_buffer);
+            System.Log(Fs, log_buffer);
             Fonts->set(name_buffer, info, JSON_NUMBER);
         }
         de = de->next;
@@ -46,8 +49,6 @@ U0 @truetype_init_fonts()
     Fonts->set("monospace Italic",
         Fonts->@(default_font_names->o("monospace")->@("italic")), JSON_NUMBER);
 }
-
-@truetype_init_fonts;
 
 #define CPZ_MSG_WIN_CREATE 0x1001
 #define CPZ_MSG_WIN_DESTROY 0x1002
@@ -1042,6 +1043,7 @@ U0 @compositor_task()
     Ipc.InitQueue(Fs);
     Compositor.task = Fs;
     System.Log(Fs, "Task running at 0x%08x", Fs);
+    @compositor_init_truetype_fonts;
 
     I64 total_mem;
     I64 free_mem;
