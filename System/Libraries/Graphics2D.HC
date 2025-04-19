@@ -1182,18 +1182,12 @@ I64 Y2Pos(CDC* src)
 
 I64 @get_truetype_text_width(U8* font_name, I64 size, I32* text, I32* advance = NULL)
 {
+    I64 line_height = ToI64(size * 1.2);
     stbtt_fontinfo* font = Fonts->@(font_name);
-    if (!font) {
+    if (!font || !line_height || !text) {
         return 0;
     }
-    I64 res = 0;
-    CDC* dc = DCNew(Display.Width(), (size * 2));
-    Free(dc->body);
-    dc->body = @stbtt_RenderText(font, dc->width_internal, dc->height, ToI64(size * 1.2), text, advance);
-    dc->width -= 16;
-    res = X2Pos(dc) - X1Pos(dc);
-    DCDel(dc);
-    return res;
+    return @stbtt_GetTextWidth(font, line_height, text, advance);
 }
 
 I64 @get_truetype_baseline(U8* font_name, I64 size)
