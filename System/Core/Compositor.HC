@@ -1065,7 +1065,7 @@ U0 @compositor_task()
         // Debug stuff
         I64 debug_row;
 
-        if (KeyDown(SC_F12)) {
+        if (KeyDown(SC_F12) || (config->o("debug") && config->o("debug")->@("show_compositor_overlay"))) {
             debug_row = 32;
 
             total_mem = sys_code_bp->alloced_u8s;

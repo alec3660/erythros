@@ -1,0 +1,6 @@
+{
+    "debug": {
+        "show_compositor_overlay": true,
+        "show_system_log_messages": true
+    }
+}

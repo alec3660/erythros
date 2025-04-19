@@ -51,6 +51,10 @@ U8* @system_build_info() { return System.build_info; }
 
 U0 @system_log(CTask* task, U8* fmt, ...)
 {
+    if (!config->o("debug"))
+        return;
+    if (!config->o("debug")->@("show_system_log_messages"))
+        return;
     U8* buf = StrPrintJoin(NULL, fmt, argc, argv);
     U8* str = buf;
     U32 color;

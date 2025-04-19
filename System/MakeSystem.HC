@@ -52,13 +52,17 @@ load_elf("M:/build/bin/tlse");
 
 // Erythros system libraries
 "libraries: { ";
+#include "Libraries/Json";
+
+// Load system-wide config values
+JsonObject* config = Json.Parse(FileRead("M:/Settings/config.json"), erythros_mem_task);
+
 #include "Libraries/Function";
 #include "Libraries/Base64";
 #include "Libraries/String";
 #include "Libraries/BitmapFont";
 #include "Libraries/Display";
 #include "Libraries/FileSystem";
-#include "Libraries/Json";
 #include "Libraries/Graphics2D";
 #include "Libraries/Animation2D";
 #include "Libraries/Image";
@@ -77,6 +81,7 @@ load_elf("M:/build/bin/tlse");
 #include "Libraries/Clipboard";
 #include "Libraries/Widget";
 #include "Libraries/Theme";
+
 
 @http_init_tmp_and_cache_directories;
 
