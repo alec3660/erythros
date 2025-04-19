@@ -85,8 +85,7 @@ class @compositor
     Bool in_drag;
     Bool in_resize;
     CTask* task;
-    U0(*Init)
-    ();
+    U0 (*Init)();
     Window* (*CreateWindow)(I64 x, I64 y, I64 width, I64 height,
         I64 flags = WIN_FLAGS_DEFAULT, U8* title = NULL,
         Context2D* icon = NULL);
@@ -98,8 +97,7 @@ class @compositor
     U0 (*RegisterForGlobalInputEvents)(Window* win);
     U0 (*UnregisterForGlobalInputEvents)(Window* win);
     U0 (*SetWallpaper)(Context2D* ctx, U32 mode = CPZ_WALLPAPER_AUTORESIZE, U32 background = Color(0, 0, 0));
-    U0(*Task)
-    ();
+    U0 (*Task)();
 };
 
 @compositor Compositor;

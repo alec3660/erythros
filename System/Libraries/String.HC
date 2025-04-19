@@ -149,8 +149,7 @@ U0 @string_trim(U8* s, U8 ch = NULL, I64 mode = TRIM_BOTH)
 
 class @string
 {
-    U0(*Append)
-    (U8 * dst, U8 * fmt, ...);
+    U0 (*Append)(U8* dst, U8* fmt, ...);
     Bool (*BeginsWith)(U8* fragment, U8* str);
     Bool (*EndsWith)(U8* fragment, U8* str);
     Bool (*IsNumber)(U8* s);

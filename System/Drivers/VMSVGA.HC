@@ -242,10 +242,8 @@ U0 @vmsvga_display_update() { @vmsvga_reg_write(VMSVGA_REG_ENABLE, 1); }
 
 class @vmsvga
 {
-    U0(*Init)
-    (I64 w, I64 h, I64 bpp);
-    U64(*FrameBuffer)
-    ();
+    U0 (*Init)(I64 w, I64 h, I64 bpp);
+    U64 (*FrameBuffer)();
 };
 
 @vmsvga VMSVGA;

@@ -76,8 +76,7 @@ class Elf {
     I64 symtab_size;
 };
 
-U0(*_start)
-();
+U0 (*_start)();
 
 U0 unimplemented_symbol()
 {

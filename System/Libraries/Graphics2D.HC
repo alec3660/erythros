@@ -1558,10 +1558,8 @@ class @graphics2d
     Context2D* fb;
 
     Context2D* (*FrameBufferContext2D)();
-    U0(*Init)
-    ();
-    U0(*Flip)
-    (Context2D * ctx);
+    U0 (*Init)();
+    U0 (*Flip)(Context2D* ctx);
     I64 qwords;
 };
 

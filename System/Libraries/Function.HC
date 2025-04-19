@@ -12,10 +12,8 @@ U0 @function_patch(U32 from, U32 to)
 
 class @function
 {
-    U0(*InsertCall)
-    (U32 from, U32 to);
-    U0(*Patch)
-    (U32 from, U32 to);
+    U0 (*InsertCall)(U32 from, U32 to);
+    U0 (*Patch)(U32 from, U32 to);
 };
 
 @function Function;

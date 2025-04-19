@@ -25,12 +25,9 @@ class TcpSocket {
     U64 send_buffer_filled;
     U64 send_buffer_kick; // We set this to 1 when we have data available to net,
                           // Net sets back to 0 when ready to receive
-    U0(*close)
-    ();
-    U64(*receive)
-    (U64 buf, U64 length);
-    U0(*send)
-    (U64 buf, U64 length);
+    U0 (*close)();
+    U64 (*receive)(U64 buf, U64 length);
+    U0 (*send)(U64 buf, U64 length);
 };
 
 class TcpBind {

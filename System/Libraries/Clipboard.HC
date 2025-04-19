@@ -35,8 +35,7 @@ class @clipboard
     U0 (*Init)();
     U0 (*Insert)(I64 type, U8* data);
     I64 (*Length)();
-    U0(*Task)
-    ();
+    U0 (*Task)();
 };
 
 @clipboard Clipboard;
