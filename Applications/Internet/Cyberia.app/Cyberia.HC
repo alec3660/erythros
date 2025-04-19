@@ -690,7 +690,7 @@ U0 @cyberia_init()
 
     status2 = Gui.CreateWidget(win, WIDGET_TYPE_LABEL, 0, 0, 320, 16);
     Gui.Widget.SetFont(status2, "Eight Bit Dragon");
-    Gui.Widget.SetText(status2, "Idle");
+    Gui.Widget.SetText(status2, "");
 
     backbtn1 = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, 0, 0, 24, 24);
     Gui.Widget.SetText(backbtn1, "");
