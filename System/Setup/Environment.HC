@@ -247,12 +247,3 @@ CTask* SpawnQue2(U0 (*fp_addr)(U8* data), U8* data = NULL, U8* task_name = NULL,
 @patch_jmp_rel32(&BlkDevLock, &BlkDevLock2); // Patch BlkDevLock so we don't deadlock on multiple tasks reading from virtio disk
 @patch_jmp_rel32(&DrvLock, &DrvLock2);       // Patch DrvLock so we don't deadlock on multiple tasks reading from virtio disk
 @patch_jmp_rel32(&SpawnQue, &SpawnQue2);     // Patch SpawnQue so we don't deadlock on spawning multicore tasks simultaneously
-
-U0 @erythros_mem_task_loop()
-{
-    while (1) {
-        Sleep(1);
-    };
-}
-
-CTask* erythros_mem_task = Spawn(&@erythros_mem_task_loop, , "ErythrosMemTask");
