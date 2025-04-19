@@ -730,7 +730,7 @@ JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",
 #define ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
 #define ADD_THREE_BYTES_TO_CODE_POINT_VALUE ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
 
-I32* @I32_text_stream_from_utf8(U8* text, I64* count)
+I32* @I32_text_stream_from_utf8(U8* text, I64* count, HtmlRenderer* renderer)
 {
     if (!text || !StrLen(text))
         return NULL;
@@ -738,7 +738,7 @@ I32* @I32_text_stream_from_utf8(U8* text, I64* count)
     I64 j = 0;
     I32 ch;
     I32 code_point;
-    I32* stream = CAlloc((StrLen(text) + 1) * sizeof(I32), erythros_mem_task);
+    I32* stream = CAlloc((StrLen(text) + 1) * sizeof(I32), renderer->task);
     while (ch = text[i]) {
         if (ch < 0x80) {
             stream[j++] = ch;
@@ -794,7 +794,7 @@ Bool @code_point_is_whitespace(I32 code_point)
     return NULL;
 }
 
-U8* @resolved_font_name_for_node(@html_dom_node* node)
+U8* @resolved_font_name_for_node(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !node->fontFamily || !StrLen(node->fontFamily))
         return NULL;
@@ -806,7 +806,7 @@ U8* @resolved_font_name_for_node(@html_dom_node* node)
     if (node->fontWeight >= 700 && StrICmp(node->fontFamily + StrLen(node->fontFamily) - 4, "bold")) {
         StrPrint(buf, "%s Bold", node->fontFamily);
         if (Fonts->@(buf)) {
-            font_name_with_weight_applied = StrNew(buf, erythros_mem_task);
+            font_name_with_weight_applied = StrNew(buf, renderer->task);
         }
     }
 
@@ -814,7 +814,7 @@ U8* @resolved_font_name_for_node(@html_dom_node* node)
     if (node->italic) {
         StrPrint(buf, "%s Italic", font_name_with_weight_applied);
         if (Fonts->@(buf)) {
-            return StrNew(buf, erythros_mem_task);
+            return StrNew(buf, renderer->task);
         }
     }
 
@@ -832,7 +832,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     // Convert all the code points to I32
     I64 code_point_count = 0;
     I64 code_point_offset = 0;
-    I32* stream = @I32_text_stream_from_utf8(node->text, &code_point_count);
+    I32* stream = @I32_text_stream_from_utf8(node->text, &code_point_count, renderer);
 
     // L-R Trim all the whitespace code points
     while (stream[code_point_offset] && @code_point_is_whitespace(stream[code_point_offset]))
@@ -868,7 +868,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     Context2DWidget* fragment_widget;
 
     U32 fragment_bounding_box_color = Color(0x00, 0xff, 0x00);
-    U8* font_name = @resolved_font_name_for_node(node->parentNode);
+    U8* font_name = @resolved_font_name_for_node(node->parentNode, renderer);
     I64 underline_y_pos = -1;
 
     for (i = 0; i < fragment_count; i++) {
