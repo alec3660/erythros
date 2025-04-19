@@ -106,8 +106,7 @@ U0 @html_renderer_update_status_text(HtmlRenderer* renderer, U8* text)
     }
 }
 
-U0(*@html_follow_link_fp)
-(HtmlRenderer* renderer, U8* url_string) = NULL;
+U0 (*@html_follow_link_fp)(HtmlRenderer* renderer, U8* url_string) = NULL;
 
 U8* @sanitize_node_text(HtmlRenderer* renderer, U8* text)
 {
