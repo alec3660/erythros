@@ -2,5 +2,27 @@
     "debug": {
         "show_compositor_overlay": true,
         "show_system_log_messages": true
+    },
+    "default": {
+        "fonts": {
+            "serif": {
+                "regular": "Free Serif",
+                "bold": "Free Serif Bold",
+                "bold_italic": "Free Serif Bold Italic",
+                "italic": "Free Serif Italic"
+            },
+            "sans_serif": {
+                "regular": "Free Sans",
+                "bold": "Free Sans Bold",
+                "bold_italic": "Free Sans Bold Oblique",
+                "italic": "Free Sans Oblique"
+            },
+            "monospace": {
+                "regular": "Free Monospaced",
+                "bold": "Free Monospaced Bold",
+                "bold_italic": "Free Monospaced Bold Oblique",
+                "italic": "Free Monospaced Oblique"
+            }
+        }
     }
 }
