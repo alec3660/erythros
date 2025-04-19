@@ -35,14 +35,15 @@ I32 @stbtt_InitFont(stbtt_fontinfo* info, U8* data, I32 offset)
     }
 }
 
-U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, I32* word)
+U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, I32* word, I32* advance = NULL)
 {
     U64 reg RDI rdi = info;
     U64 reg RSI rsi = b_w;
     U64 reg RDX rdx = b_h;
     U64 reg RCX rcx = l_h;
     U64 reg R8 r8 = word;
-    no_warn rdi, rsi, rdx, rcx, r8;
+    U64 reg R9 r9 = advance;
+    no_warn rdi, rsi, rdx, rcx, r8, r9;
     asm {
         MOV RAX, STBTT_RENDERTEXT
         CALL RAX
