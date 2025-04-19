@@ -10,11 +10,18 @@ U0 bcmp()
     POP_SYSV_REGS
 }
 
+U64 @calloc(I64 size)
+{
+    U64 res = CAlloc(size, malloc_mem_task[malloc_current_mem_task % MALLOC_MEM_TASK_COUNT]->code_heap);
+    malloc_current_mem_task++;
+    return res;
+}
+
 U0 calloc()
 {
     PUSH_SYSV_REGS
     GET_SYSV_ARGS
-    CAlloc(p0 * p1, erythros_mem_task->code_heap);
+    @calloc(p0 * p1);
     POP_SYSV_REGS
 }
 
