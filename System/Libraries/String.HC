@@ -2,6 +2,16 @@
 #define TRIM_LEFT 1
 #define TRIM_RIGHT 2
 
+I64 StrLenI32(I32* str)
+{
+    I64 res = 0;
+    while (*str) {
+        ++res;
+        ++str;
+    }
+    return res;
+}
+
 U0 @string_append(U8* dst, U8* fmt, ...)
 {
     U8* buf;
