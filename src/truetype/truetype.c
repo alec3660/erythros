@@ -55,4 +55,52 @@ unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h,
     return bitmap;
 }
 
+int stbtt_GetTextWidth(stbtt_fontinfo* info, int l_h, int* word, int* advance)
+{
+    // https://github.com/justinmeiners/stb-truetype-example
+
+    /* calculate font scaling */
+    float scale = stbtt_ScaleForPixelHeight(info, l_h);
+
+    int x = 0;
+
+    int ascent, descent, lineGap;
+    stbtt_GetFontVMetrics(info, &ascent, &descent, &lineGap);
+
+    ascent = roundf(ascent * scale);
+    descent = roundf(descent * scale);
+
+    int i = 0;
+    while (word[i]) {
+        /* how wide is this character */
+        int ax;
+        int lsb;
+        stbtt_GetCodepointHMetrics(info, word[i], &ax, &lsb);
+        /* (Note that each Codepoint call has an alternative Glyph version which caches the work required to lookup the character word[i].) */
+
+        /* get bounding box for character (may be offset to account for chars that dip above or below the line) */
+        int c_x1, c_y1, c_x2, c_y2;
+        stbtt_GetCodepointBitmapBox(info, word[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
+
+        /* compute y (different characters have different heights) */
+        int y = ascent + c_y1;
+
+        /* advance x */
+        x += roundf(ax * scale);
+
+        /* add kerning */
+        int kern;
+        kern = stbtt_GetCodepointKernAdvance(info, word[i], word[i + 1]);
+        x += roundf(kern * scale);
+
+        if (advance) {
+            advance[i] = x;
+        }
+
+        ++i;
+    }
+
+    return x;
+}
+
 int main() { return 0; }

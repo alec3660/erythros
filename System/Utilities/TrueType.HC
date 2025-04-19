@@ -50,6 +50,19 @@ U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, I32* word
     }
 }
 
+I32 @stbtt_GetTextWidth(stbtt_fontinfo* info, I32 l_h, I32* word, I32* advance = NULL)
+{
+    U64 reg RDI rdi = info;
+    U64 reg RSI rsi = l_h;
+    U64 reg RDX rdx = word;
+    U64 reg RCX rcx = advance;
+    no_warn rdi, rsi, rdx, rcx;
+    asm {
+        MOV RAX, STBTT_GETTEXTWIDTH
+        CALL RAX
+    }
+}
+
 U8* @stbtt_GetFontNameDefault(stbtt_fontinfo* font, I32* length)
 {
     U64 reg RDI rdi = font;
