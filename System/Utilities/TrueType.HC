@@ -44,6 +44,7 @@ U8* @stbtt_RenderText(stbtt_fontinfo* info, I32 b_w, I32 b_h, I32 l_h, I32* word
     U64 reg R8 r8 = word;
     U64 reg R9 r9 = advance;
     no_warn rdi, rsi, rdx, rcx, r8, r9;
+    stbtt_pos = 0;
     asm {
         MOV RAX, STBTT_RENDERTEXT
         CALL RAX

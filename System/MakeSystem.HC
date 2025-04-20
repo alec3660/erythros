@@ -23,6 +23,7 @@ WinToTop(adam_task);
 #include "FFI/LibC";
 #include "FFI/New";
 #include "FFI/ELF64";
+#include "FFI/TrueType";
 
 // stb_image library
 #include "Utilities/Image";

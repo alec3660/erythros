@@ -1,3 +1,6 @@
+void* _Z15truetype_malloci(int size);
+void _Z13truetype_freePv(void* ptr);
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
@@ -5,7 +8,8 @@ unsigned char* stbtt_RenderText(stbtt_fontinfo* info, int b_w, int b_h, int l_h,
 {
     // https://github.com/justinmeiners/stb-truetype-example
     /* create a bitmap for the phrase */
-    unsigned char* bitmap = calloc(b_w * b_h, sizeof(unsigned char));
+    unsigned char* bitmap = STBTT_malloc(b_w * b_h, sizeof(unsigned char));
+    memset(bitmap, 0, b_w * b_h);
 
     /* calculate font scaling */
     float scale = stbtt_ScaleForPixelHeight(info, l_h);

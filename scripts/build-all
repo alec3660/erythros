@@ -107,7 +107,7 @@ def build_image():
 def build_truetype():
     print("build-all: build-truetype")
     build_specific_options = '-Wl,--section-start=.text=0x1104000 -Wl,--section-start=.plt=0x1102020 -no-pie'
-    res = os.system('cd ' + project_path + '&& cd src/truetype && gcc -o ../../build/bin/truetype ' + build_specific_options + ' -O0 -mno-mmx -mno-red-zone truetype.c ../openlibm/libopenlibm.a')
+    res = os.system('cd ' + project_path + '&& cd src/truetype && gcc -o ../../build/bin/truetype ' + build_specific_options + ' -O0 -mno-mmx -mno-red-zone truetype.c ../../build/lib/libtemple.so ../openlibm/libopenlibm.a')
     if res:
         raise ValueError("build-all: step 'build-image' failed, error code " + str(res))
 
@@ -257,8 +257,8 @@ def build_all():
         refresh_build_path()
         build_image()
         build_openlibm()
-        build_truetype()
         build_libtemple()
+        build_truetype()
         build_tlse()
         transpile_net_to_sepples()
         build_net()

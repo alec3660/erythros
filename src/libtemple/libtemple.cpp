@@ -75,3 +75,7 @@ long time_jiffies() { return 0; }
 long time_now() { return 0; }
 
 void time_sleep(long duration) { }
+
+void* truetype_malloc(int size) { return 0; }
+
+void truetype_free(void* ptr) { }

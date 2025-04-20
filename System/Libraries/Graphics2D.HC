@@ -1206,7 +1206,7 @@ I64 @get_truetype_baseline(U8* font_name, I64 size)
     dc->width -= 16;
     dc->height -= size / 4;
     res = Y2Pos(dc);
-    DCDel(dc);
+    Free(dc);
     return res;
 }
 
@@ -1232,7 +1232,7 @@ U0 Text2D(Context2D* ctx, U8* font_name, I64 x, I64 y, I64 size, U32 color, U8* 
     }
     BlendRect2D(text_ctx, ctx);
     DelContext2D(text_ctx);
-    DCDel(dc);
+    Free(dc);
 }
 
 Context2D* FastBoxBlur2D(Context2D* img, I64 radius)
