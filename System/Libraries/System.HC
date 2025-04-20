@@ -94,7 +94,7 @@ U0 @system_power_off()
 
 U0 @system_init()
 {
-    System.build_info = FileRead("build_info.TXT");
+    System.build_info = "";
     System.log_fifo = FifoI64New(1024);
     Spawn(&@system_log_task, , , T(mp_cnt, 1, 0));
 }

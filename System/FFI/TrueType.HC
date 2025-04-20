@@ -11,6 +11,7 @@ U64 @stbtt_malloc(I64 size)
 
 U0 @stbtt_free(U8* ptr)
 {
+    no_warn ptr;
     //"stbtt_free(0x%08x)\n", ptr;
 }
 
