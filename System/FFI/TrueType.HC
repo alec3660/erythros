@@ -1,4 +1,4 @@
-U64 stbtt_heap = MAlloc(1048576 * 32);
+U64 stbtt_heap = MAlloc(1024 << 13);
 U64 stbtt_pos = 0;
 
 U64 @stbtt_malloc(I64 size)
