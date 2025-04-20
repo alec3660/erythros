@@ -169,8 +169,8 @@ sys_code_bp->mem_free_lst = ShrinkMemBlkByPags(sys_code_bp->mem_free_lst, 131072
 
 CTask* erythros_mem_task = Spawn(&@erythros_mem_task_loop, , "ErythrosMemTask");
 
-#define MALLOC_MEM_TASK_COUNT 4
-CTask** malloc_mem_task = CAlloc(sizeof(CTask*) * MALLOC_MEM_TASK_COUNT, erythros_mem_task);
+#define MALLOC_MEM_TASK_COUNT 16
+CTask** malloc_mem_task = CAlloc(sizeof(CTask*) * MALLOC_MEM_TASK_COUNT, adam_task);
 I64 malloc_current_mem_task = 0;
 
 U0 @malloc_mem_tasks_init()
@@ -184,6 +184,22 @@ U0 @malloc_mem_tasks_init()
 }
 
 @malloc_mem_tasks_init;
+
+#define CALLOC_MEM_TASK_COUNT 16
+CTask** calloc_mem_task = CAlloc(sizeof(CTask*) * CALLOC_MEM_TASK_COUNT, adam_task);
+I64 calloc_current_mem_task = 0;
+
+U0 @calloc_mem_tasks_init()
+{
+    U8* scratch_buffer[64];
+    I64 i;
+    for (i = 0; i < CALLOC_MEM_TASK_COUNT; i++) {
+        StrPrint(scratch_buffer, "ErythrosCallocTask%d", i);
+        calloc_mem_task[i] = Spawn(&@erythros_mem_task_loop, , scratch_buffer);
+    }
+}
+
+@calloc_mem_tasks_init;
 
 U0 dd() { DocDump(adam_task->put_doc); }
 //@patch_jmp_rel32(&Fault2, &Reboot); // Reboot instead of crashing to the debugger
