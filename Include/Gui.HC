@@ -79,5 +79,5 @@ U0 @gui_event_loop(CTask* task)
 }
 
 Ipc.InitQueue(Fs);
-Spawn(&@gui_event_loop, Fs, Fs->task_name, 1);
+CTask* app_event_loop = Spawn(&@gui_event_loop, Fs, Fs->task_name, 1);
 System.Log(Fs, "Task running at 0x%08x", Fs);
