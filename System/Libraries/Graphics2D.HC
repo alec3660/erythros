@@ -734,12 +734,14 @@ U0 VLine2D(Context2D* ctx, I64 x, I64 y, I64 y2,
 U0 HLine2D(Context2D* ctx, I64 x, I64 y, I64 x2,
     U32 color)
 { // Draw a horizontal line.
+    if (x > ctx->width || y > ctx->height)
+        return;
     if (x2 < x)
         return;
-    I64 width = x2 - x;
-
-    MemSetU32(ctx->fb + (y * ctx->width) + x, color,
-        T(x + width > ctx->width, ctx->width - x, width));
+    while (x < x2 + 1) {
+        Plot2D(ctx, x, y, color);
+        x++;
+    }
 }
 
 U0 Line2D(Context2D* ctx, I64 x1, I64 y1, I64 x2, I64 y2,
