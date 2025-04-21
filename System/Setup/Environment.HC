@@ -263,3 +263,69 @@ CTask* SpawnQue2(U0 (*fp_addr)(U8* data), U8* data = NULL, U8* task_name = NULL,
 @patch_jmp_rel32(&BlkDevLock, &BlkDevLock2); // Patch BlkDevLock so we don't deadlock on multiple tasks reading from virtio disk
 @patch_jmp_rel32(&DrvLock, &DrvLock2);       // Patch DrvLock so we don't deadlock on multiple tasks reading from virtio disk
 @patch_jmp_rel32(&SpawnQue, &SpawnQue2);     // Patch SpawnQue so we don't deadlock on spawning multicore tasks simultaneously
+
+#define MALLOC2_REQUEST_PTR 0x280000
+#define MALLOC2_REQUEST_TIMEOUT 4096
+
+class @malloc2_request
+{
+    U64 res_addr;
+    CTask* task;
+    U64 bytes;
+    Bool zero;
+    Bool kick;
+};
+
+U0 @malloc2_task()
+{
+    Sleep(50);
+    U64* request_ptr = MALLOC2_REQUEST_PTR;
+    @malloc2_request* request = NULL;
+    while (1) {
+        request = *request_ptr;
+        if (request) {
+            if (request->zero) {
+                LXchgI64(request->res_addr, CAlloc(request->bytes, request->task));
+            } else {
+                LXchgI64(request->res_addr, MAlloc(request->bytes, request->task));
+            }
+            LXchgU8(&request->kick, 1);
+            *request_ptr = NULL;
+        }
+    }
+}
+
+Spawn(&@malloc2_task, , "MAlloc2 Task", 5);
+
+U64 MAlloc2(I64 size, CTask* task = NULL, Bool zero = FALSE)
+{
+    I64 count = 0;
+    U64 res = NULL;
+    U64* request_ptr = MALLOC2_REQUEST_PTR;
+    @malloc2_request request;
+
+    request.res_addr = &res;
+    request.bytes = size;
+    request.task = task;
+    request.zero = zero;
+    request.kick = FALSE;
+
+retry_malloc2:
+
+    count = 0;
+    while (*request_ptr)
+        Busy(5);
+    LXchgI64(request_ptr, &request);
+    while (!request.kick) {
+        ++count;
+        if (count > MALLOC2_REQUEST_TIMEOUT)
+            goto retry_malloc2;
+        Busy(5);
+    }
+    return res;
+}
+
+U64 CAlloc2(I64 size, CTask* task = NULL)
+{
+    return MAlloc2(size, task, TRUE);
+}
