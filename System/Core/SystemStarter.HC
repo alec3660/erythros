@@ -97,7 +97,7 @@ U0 @systemstarter_play_user_startup_sound()
     U8 path[512];
     StrPrint(&path, "/home/%s/.sounds/startup.wav",
         &Compositor.session.user.name);
-    U8** argv = CAlloc(sizeof(U64) * 2);
+    U8** argv = CAlloc2(sizeof(U64) * 2);
     argv[0] = "aplay";
     argv[1] = &path;
     @shell* sh = @shell_new(TRUE);
@@ -111,7 +111,7 @@ U0 @systemstarter_set_user_wallpaper()
     U8 path[512];
     StrPrint(&path, "/home/%s/.wallpaper/wallpaper.png",
         &Compositor.session.user.name);
-    U8** argv = CAlloc(sizeof(U64) * 2);
+    U8** argv = CAlloc2(sizeof(U64) * 2);
     argv[0] = "wpset";
     argv[1] = &path;
     //@shell_cmd_wpset(NULL, 2, argv);
@@ -196,8 +196,8 @@ U0 @systemstarter_task()
 
 U0 @systemstarter_create_task(U8* path, U8* name)
 {
-    @systemtask* st = CAlloc(sizeof(@systemtask));
-    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
+    @systemtask* st = CAlloc2(sizeof(@systemtask));
+    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
     st->path = StrNew(path);
     st->name = StrNew(name);
     msg->client = NULL;

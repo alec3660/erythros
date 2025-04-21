@@ -16,7 +16,7 @@ U8** @shell_parse_args(@shell* sh, U8* str,
     Bool quoted = FALSE;
     I64 _argc = 0;
     U8** _argv = NULL;
-    U8** _tmp = CAlloc(sizeof(U64) * StrLen(str));
+    U8** _tmp = CAlloc2(sizeof(U64) * StrLen(str));
     I64 i = 0;
     I64 s = 0;
     I64 len;
@@ -29,7 +29,7 @@ U8** @shell_parse_args(@shell* sh, U8* str,
                 if (str[i - 1] == '"')
                     len--;
                 if (len - 1) {
-                    _tmp[_argc] = CAlloc(len);
+                    _tmp[_argc] = CAlloc2(len);
                     MemCpy(_tmp[_argc], str + s, len - 1);
                     _argc++;
                 }
@@ -47,7 +47,7 @@ U8** @shell_parse_args(@shell* sh, U8* str,
         i++;
     }
     *argc = _argc;
-    _argv = CAlloc(sizeof(U64) * _argc);
+    _argv = CAlloc2(sizeof(U64) * _argc);
     MemCpy(_argv, _tmp, sizeof(U64) * _argc);
     Free(_tmp);
     return _argv;
@@ -90,7 +90,7 @@ U8* @shell_expand_relative_path(@shell* sh, U8* path)
         return StrNew(path);
         break;
     default:
-        U8* abs_path = CAlloc(StrLen(path) + StrLen(&sh->cwd) + 4);
+        U8* abs_path = CAlloc2(StrLen(path) + StrLen(&sh->cwd) + 4);
         StrPrint(abs_path, "%s/%s", &sh->cwd, path);
         return abs_path;
         break;
@@ -121,7 +121,7 @@ U0 @shell_set_env_var(@shell* sh, U8* key, U8* value)
         }
         var = var->next;
     }
-    @shell_env_var* new = CAlloc(sizeof(@shell_env_var));
+    @shell_env_var* new = CAlloc2(sizeof(@shell_env_var));
     StrCpy(&new->key, key);
     StrCpy(&new->value, value);
     new->prev = var;
@@ -261,17 +261,17 @@ U0 @shell_instance(@shell* sh)
 
 U0 @shell_init(@shell* sh)
 {
-    sh->env = CAlloc(sizeof(@shell_env_var));
+    sh->env = CAlloc2(sizeof(@shell_env_var));
     sh->history.limit = SHELL_HISTORY_LIMIT;
     sh->history.pos = 0;
-    sh->history.entries = CAlloc(sizeof(U64) * SHELL_HISTORY_LIMIT);
+    sh->history.entries = CAlloc2(sizeof(U64) * SHELL_HISTORY_LIMIT);
     sh->input = FifoU8New(SHELL_INPUT_FIFO_SIZE);
     sh->task = Spawn(&@shell_instance, sh);
 }
 
 @shell* @shell_new(Bool headless = FALSE)
 {
-    @shell* sh = CAlloc(sizeof(@shell));
+    @shell* sh = CAlloc2(sizeof(@shell));
     if (!headless)
         @shell_init(sh);
     StrCpy(&sh->cwd, &Compositor.session.home);
