@@ -52,7 +52,7 @@ templeos_iso_file = build_options['templeos_iso_file'] if 'templeos_iso_file' in
 qemu_args = build_options['qemu_args'] if 'qemu_args' in build_options else [
     '-display sdl,grab-mod=rctrl',
     '-enable-kvm',
-    '-smp cores=4',
+    '-smp cores=6',
     '-m 8192',
     '-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no',
     '-device ac97',
