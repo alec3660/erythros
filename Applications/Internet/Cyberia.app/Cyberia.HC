@@ -127,6 +127,7 @@ U0 @cyberia_win_close(Window* win)
     }
     Compositor.UnregisterForGlobalInputEvents(win);
     Compositor.DestroyWindow(win);
+    Kill(app_event_loop);
 }
 
 U8* @browser_tls_connection_state(@http_response* resp)

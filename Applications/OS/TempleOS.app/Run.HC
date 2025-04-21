@@ -19,6 +19,7 @@ U0 @templeos_close_callback(Window* win)
     Kill(templeos_winmgr_task);
     Compositor.UnregisterForGlobalInputEvents(win);
     Compositor.DestroyWindow(win);
+    Kill(app_event_loop);
     win = NULL;
     Exit;
 }

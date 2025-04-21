@@ -13,6 +13,7 @@ U0 @shutdown_callback(U64 o)
         }
     }
     Compositor.DestroyWindow(win);
+    Kill(app_event_loop);
     Gui.Window.SetFocus(Compositor.GetWindowByTitle("Wallpaper"));
 }
 

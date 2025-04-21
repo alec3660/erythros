@@ -1,13 +1,22 @@
-#include "M:/Include/Gui";
+Gui.App();
 
-U0 window_close(Window* win) { Compositor.DestroyWindow(win); }
+U0 app_window_close(Window* win)
+{
+    Compositor.DestroyWindow(win);
+    Kill(app_event_loop);
+}
+
+U0 new_window_close(Window* win)
+{
+    Compositor.DestroyWindow(win);
+}
 
 U0 btn1_click(Widget* widget)
 {
     no_warn widget;
     Window* win = Compositor.CreateWindow(Rand * Display.Width(), Rand * Display.Height(),
         320, 240, WIN_FLAGS_DEFAULT);
-    win->callback.close = &window_close;
+    Gui.Window.SetCallback(win, "close", &new_window_close);
     Gui.Window.SetTitle(win, "New Window");
     Gui.Window.SetFocus(win);
 }
@@ -30,6 +39,7 @@ U0 Main()
     win->alpha = TRUE;
     Gui.Window.Center(win);
     Gui.Window.SetTitle(win, "Test Application");
+    Gui.Window.SetCallback(win, "close", &app_window_close);
 
     TextInputWidget* label1 = Gui.CreateWidget(win, WIDGET_TYPE_LABEL, 8, 0, 192, 64);
     Gui.Widget.SetText(label1,

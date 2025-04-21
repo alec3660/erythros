@@ -132,6 +132,7 @@ U0 window_close(Window* win)
         Gui.Window.SetFocus(Compositor.GetWindowByTitle("Wallpaper"));
     Compositor.UnregisterForGlobalInputEvents(win);
     Compositor.DestroyWindow(win);
+    Kill(app_event_loop);
 }
 
 U0 @terminal_vscroll_change(Widget*)
