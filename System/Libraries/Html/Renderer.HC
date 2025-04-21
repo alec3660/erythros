@@ -303,11 +303,12 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
     if (node->parentNode) {
         node->backgroundColor = node->parentNode->backgroundColor;
         node->color = node->parentNode->color;
+        node->linethroughColor = node->parentNode->linethroughColor;
+        node->underlineColor = node->parentNode->underlineColor;
         node->fontFamily = node->parentNode->fontFamily;
         node->fontSize = node->parentNode->fontSize;
         node->fontWeight = node->parentNode->fontWeight;
         node->textAlign = node->parentNode->textAlign;
-        node->textDecoration = node->parentNode->textDecoration;
         node->italic = node->parentNode->italic;
     }
 
@@ -425,12 +426,16 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                     if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "right"))
                         node->textAlign = CSS_TEXT_ALIGN_RIGHT;
 
-                    if (!StrICmp(key->name, "text-decoration")) {
+                    if (!StrICmp(key->name, "text-decoration") || !StrICmp(key->name, "text-decoration-line")) {
                         if (!StrICmp(values->@(0), "none")) {
-                            node->textDecoration = 0;
+                            node->linethroughColor = 0;
+                            node->underlineColor = 0;
+                        }
+                        if (!StrICmp(values->@(0), "line-through")) {
+                            node->linethroughColor = node->color;
                         }
                         if (!StrICmp(values->@(0), "underline")) {
-                            node->textDecoration = CSS_TEXT_UNDERLINE;
+                            node->underlineColor = node->color;
                         }
                     }
 
@@ -875,22 +880,22 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
         if (fragments[i] && *fragments[i]) {
             text_width = @get_truetype_text_width(font_name, node->parentNode->fontSize, fragments[i]);
             if (text_width) {
-                text_width += 4;
+                text_width += 3;
                 fragment_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
                     U64_MAX, U64_MAX, 0, 0);
                 fragment_widget->data = node;
                 fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
 
-                switch (node->parentNode->textDecoration) {
-                case CSS_TEXT_UNDERLINE:
+                if (node->parentNode->linethroughColor) {
+                    fragment_widget->ctx->line(0, (fragment_widget->ctx->height / 2), fragment_widget->ctx->width, (fragment_widget->ctx->height / 2), node->parentNode->linethroughColor);
+                }
+
+                if (node->parentNode->underlineColor) {
                     if (underline_y_pos < 0)
-                        underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 2;
+                        underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 3;
                     if (!(underline_y_pos < 0)) {
-                        fragment_widget->ctx->fill_rect(0, underline_y_pos, fragment_widget->ctx->width, 2, node->parentNode->color);
+                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width, underline_y_pos, node->parentNode->underlineColor);
                     }
-                    break;
-                default:
-                    break;
                 }
 
                 if (renderer->debug && fragment_widget->ctx) {
@@ -1000,6 +1005,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     if (!StrICmp(node->tagName, "i") || !StrICmp(node->tagName, "em")) {
         node->italic = TRUE;
+    }
+
+    if (!StrICmp(node->tagName, "strike")) {
+        node->linethroughColor = node->color;
     }
 
     if (!StrICmp(node->tagName, "body")) {

@@ -93,11 +93,12 @@ class @html_dom_node : JsonElement
     I64 width;
     I64 height;
     U32 backgroundColor;
+    U32 underlineColor;
+    U32 linethroughColor;
     U32 color;
     U8* fontFamily;
     I64 fontSize;
     I64 fontWeight;
-    I64 textDecoration;
     Bool italic;
     Bool display_block;
 };
