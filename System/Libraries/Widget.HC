@@ -333,7 +333,7 @@ U0 @widget_add_widget_to_list(Window* win, Widget* widget)
     while (widgets_list->next) {
         widgets_list = widgets_list->next;
     }
-    @window_widgets_list* widget_list_item = CAlloc(sizeof(@window_widgets_list));
+    @window_widgets_list* widget_list_item = CAlloc2(sizeof(@window_widgets_list));
     widget_list_item->widget = widget;
     widget_list_item->prev = widgets_list;
     widgets_list->next = widget_list_item;
@@ -666,7 +666,7 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
     default:
         return NULL;
     }
-    @widget_create_set_values : widget = CAlloc(size_of_widget);
+    @widget_create_set_values : widget = CAlloc2(size_of_widget);
     widget->type = type;
     widget->x = x;
     widget->y = y;
@@ -681,7 +681,7 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
         widget(TerminalWidget*)->color.background = Color(0, 0, 0);
         widget(TerminalWidget*)->color.foreground = Color(217, 217, 217);
         widget(TerminalWidget*)->color.cursor = Color(217, 217, 0);
-        widget(TerminalWidget*)->row = CAlloc(sizeof(@terminal_widget_row) * 2000);
+        widget(TerminalWidget*)->row = CAlloc2(sizeof(@terminal_widget_row) * 2000);
         break;
     case WIDGET_TYPE_INPUT:
         widget(TextInputWidget*)->color = Color(0, 0, 0);
@@ -692,7 +692,7 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
         break;
     case WIDGET_TYPE_LABEL:
         widget(TextLabelWidget*)->color = Color(0, 0, 0);
-        widget(TextLabelWidget*)->SetText = CAlloc(0x1F, Fs->code_heap);
+        widget(TextLabelWidget*)->SetText = CAlloc2(0x1F, Fs->code_heap);
         I32 addr = widget(TextLabelWidget*)->SetText;
         MemCpy(addr, widget_self_set1, 0x1F);
         MemCpy(addr + 12, &widget, 8);
@@ -700,7 +700,7 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
         break;
     case WIDGET_TYPE_LISTVIEW:
         widget(ListViewWidget*)->color = Color(0, 0, 0);
-        widget(ListViewWidget*)->items = CAlloc(sizeof(@list_view_item));
+        widget(ListViewWidget*)->items = CAlloc2(sizeof(@list_view_item));
         break;
     }
 
@@ -782,7 +782,7 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
         widget(TerminalWidget*)->color.background = Color(0, 0, 0);
         widget(TerminalWidget*)->color.foreground = Color(217, 217, 217);
         widget(TerminalWidget*)->color.cursor = Color(217, 217, 0);
-        widget(TerminalWidget*)->row = CAlloc(sizeof(@terminal_widget_row) * 2000);
+        widget(TerminalWidget*)->row = CAlloc2(sizeof(@terminal_widget_row) * 2000);
         break;
     case WIDGET_TYPE_INPUT:
         widget(TextInputWidget*)->color = Color(0, 0, 0);
@@ -791,7 +791,7 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
         widget(TextInputWidget*)->selected_region_start = -1;
         widget(TextInputWidget*)->selected_region_end = -1;
         widget(TextInputWidget*)->color = Color(0, 0, 0);
-        widget(TextInputWidget*)->SetText = CAlloc(0x1F, Fs->code_heap);
+        widget(TextInputWidget*)->SetText = CAlloc2(0x1F, Fs->code_heap);
         addr = widget(TextInputWidget*)->SetFont;
         MemCpy(addr, widget_self_set1, 0x1F);
         MemCpy(addr + 12, &widget, 8);
@@ -803,7 +803,7 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
         break;
     case WIDGET_TYPE_LABEL:
         widget(TextLabelWidget*)->color = Color(0, 0, 0);
-        widget(TextLabelWidget*)->SetText = CAlloc(0x1F, Fs->code_heap);
+        widget(TextLabelWidget*)->SetText = CAlloc2(0x1F, Fs->code_heap);
         addr = widget(TextLabelWidget*)->SetFont;
         MemCpy(addr, widget_self_set1, 0x1F);
         MemCpy(addr + 12, &widget, 8);
@@ -815,7 +815,7 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
         break;
     case WIDGET_TYPE_LISTVIEW:
         widget(ListViewWidget*)->color = Color(0, 0, 0);
-        widget(ListViewWidget*)->items = CAlloc(sizeof(@list_view_item));
+        widget(ListViewWidget*)->items = CAlloc2(sizeof(@list_view_item));
         break;
     }
 
