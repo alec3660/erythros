@@ -438,6 +438,8 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                         node->height = Str2I64(node_tmpnum_buf);
                     }
 
+                    if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "left"))
+                        node->textAlign = CSS_TEXT_ALIGN_LEFT;
                     if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "center"))
                         node->textAlign = CSS_TEXT_ALIGN_CENTER;
                     if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "right"))
