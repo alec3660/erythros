@@ -47,6 +47,14 @@ class @html_lazyload_image
     @html_lazyload_image* next;
 };
 
+class @renderer_reflow_state
+{
+    I32 x1;
+    I32 x2;
+    I32 y1;
+    Widget* parent;
+};
+
 class @html_renderer
 {
     CTask* task;
@@ -79,6 +87,8 @@ class @html_renderer
     Context2D* link_pointer;
     U64 link_callback;
     U64 form_submit_callback;
+    @renderer_reflow_state state[256];
+    I64 state_index;
 };
 
 #define HtmlRenderer @html_renderer
@@ -384,8 +394,15 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                         if (!StrICmp(values->@(0), "none")) {
                             return FALSE;
                         }
-                        if (StrICmp(values->@(0), "block")) {
-                            node->display_block = FALSE;
+                        if (!StrICmp(values->@(0), "block")) {
+                            node->display = CSS_DISPLAY_BLOCK;
+                        } else if (!StrICmp(values->@(0), "inline")) {
+                            node->display = CSS_DISPLAY_INLINE;
+                        } else if (!StrICmp(values->@(0), "inline-block")) {
+                            node->display = CSS_DISPLAY_INLINE_BLOCK;
+                        } else {
+                            // FIXME: unimplemented; default to inline
+                            node->display = CSS_DISPLAY_INLINE;
                         }
                     }
 
@@ -907,6 +924,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
 
                 fragment_widget->width = fragment_widget->ctx->width;
                 fragment_widget->height = fragment_widget->ctx->height;
+                fragment_widget->fast_copy = TRUE;
             }
         }
     }
@@ -972,9 +990,8 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     Context2DWidget* block_widget;
     Context2DWidget* img_widget;
 
-    // FIXME: Resolve if display: block is set
     if (block_level_element_tag_names->contains(node->tagName)) {
-        node->display_block = TRUE;
+        node->display = CSS_DISPLAY_BLOCK;
     }
 
     if (StrICmp(node->tagName, "InternalTextNode"))
@@ -988,14 +1005,20 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
         for (i = 0; i < renderer->indent; i++)
             "  ";
-        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display_block: %d\n",
-            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, node->display_block;
+        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display: %d\n",
+            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, node->display;
     }
 
     // Insert a block widget for the element's opening tag
-    if (node->display_block) {
+    if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
+        if (node->width > 0 && node->height > 0) {
+            block_widget->ctx = NewContext2D(node->width, node->height)->fill(node->backgroundColor);
+            block_widget->width = block_widget->ctx->width;
+            block_widget->height = block_widget->ctx->height;
+            block_widget->fast_copy = TRUE;
+        }
         block_widget->data = node;
     }
 
@@ -1072,123 +1095,194 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     // Insert a block widget for the element's closing tag
-    if (node->display_block || !StrICmp(node->tagName, "br")) {
+    if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK || !StrICmp(node->tagName, "br")) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
+        if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
+            block_widget->width = -0xbeef;
+            block_widget->height = -0xcafe;
+        }
         block_widget->data = node;
     }
 
     --renderer->indent;
 }
 
+U0 @reflow_push_state(HtmlRenderer* renderer, I32 x1, I32 x2, I32 y1, Widget* parent)
+{
+    ++renderer->state_index;
+    @renderer_reflow_state* state = &renderer->state[renderer->state_index];
+    state->x1 = x1;
+    state->x2 = x2;
+    state->y1 = y1;
+    state->parent = parent;
+}
+
+U0 @reflow_pop_state(HtmlRenderer* renderer, I32* x1, I32* x2, I32* y1, U64* parent)
+{
+    @renderer_reflow_state* state = &renderer->state[renderer->state_index];
+    if (x1)
+        *x1 = state->x1;
+    if (x2)
+        *x2 = state->x2;
+    if (y1)
+        *y1 = state->y1;
+    if (parent)
+        *parent = state->parent;
+    --renderer->state_index;
+}
+
+Bool @reflow_widget_is_closing_tag(Widget* widget)
+{
+    if (!widget)
+        return FALSE;
+    return (widget->width == -0xbeef && widget->height == -0xcafe);
+}
+
+I64 @reflow_cumulative_width(@window_widgets_list* wl_item, I64 line_break_width)
+{
+    @html_dom_node* node = NULL;
+    I64 width = wl_item->widget->width;
+    wl_item = wl_item->next;
+    while (wl_item && wl_item->widget && wl_item->widget->data && width + wl_item->widget->width < line_break_width) {
+        node = wl_item->widget->data;
+        if (node->display == CSS_DISPLAY_BLOCK || !StrICmp(node->tagName, "br") || @reflow_widget_is_closing_tag(wl_item->widget)) {
+            wl_item = NULL;
+        } else {
+            width += wl_item->widget->width;
+            wl_item = wl_item->next;
+        }
+    }
+    return width;
+}
+
 U0 @reflow_node_list(HtmlRenderer* renderer)
 {
-    if (!renderer)
+    if (!renderer || !renderer->win || !renderer->widgets_base)
         return;
-    if (!renderer->widgets_base)
-        return;
-
-    renderer->render_x = 0;
-    renderer->render_y = 0;
-    renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
-
-    VerticalScrollBarWidget* vscroll = renderer->vertical_scroll_widget;
 
     renderer->background_widget->ctx = renderer->background_ctx;
+    renderer->state_index = -1;
+
+    I64 x1 = 0;
+    I64 y1 = 0;
+    I64 x2 = renderer->win->width;
+    I64 indent_x = 0;
+    Widget* parent = NULL;
+    Widget* widget = NULL;
+
+    @reflow_push_state(renderer, x1, x2, y1, parent);
+
+    renderer->render_x = x1;
+    renderer->render_y = y1;
+    renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+
+    @html_dom_node* node = NULL;
+    @window_widgets_list* wl_item = renderer->widgets_base->next;
+
+    VerticalScrollBarWidget* vscroll = renderer->vertical_scroll_widget;
     I64 origin_y = renderer->background_widget->y;
     I64 offset_y = origin_y;
-    I64 line_break_max = 0;
+
     I64 minimum_vscroll_value = 0;
     if (vscroll && vscroll->max && vscroll->value) {
         minimum_vscroll_value = ToI64((vscroll->max * 1.0) / (vscroll->height * 1.0) * (16 * 1.0));
         offset_y -= vscroll->value - minimum_vscroll_value;
     }
 
-    @html_dom_node* node;
-    @html_dom_node* cumulative_node;
-    I64 cumulative_widgets_width;
-    @window_widgets_list* widget_list_item = renderer->widgets_base->next;
-    @window_widgets_list* cumulative_list_item;
-    Widget* widget;
+    while (wl_item) {
+        widget = wl_item->widget;
+        if (!widget)
+            goto reflow_next_wl_item;
 
-    while (widget_list_item) {
-        widget = widget_list_item->widget;
         node = widget->data;
+        if (!node)
+            goto reflow_next_wl_item;
 
-        if (node) {
-
-            if (!StrICmp(node->tagName, "br")) {
-                renderer->render_x = 0;
-                renderer->render_y += renderer->max_line_height;
-                renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
-                goto reflow_next_list_item;
-            }
-
-            if (node->display_block) {
-                if (renderer->render_x) {
-                    renderer->render_x = 0;
+        switch (node->display) {
+        case CSS_DISPLAY_BLOCK:
+        case CSS_DISPLAY_INLINE_BLOCK:
+            if (@reflow_widget_is_closing_tag(widget)) {
+                if (node->display == CSS_DISPLAY_INLINE_BLOCK)
+                    renderer->render_x = x2;
+                @reflow_pop_state(renderer, &x1, &x2, &y1, &parent);
+                if (node->display == CSS_DISPLAY_BLOCK) {
+                    renderer->render_x = x1;
                     renderer->render_y += renderer->max_line_height;
                     renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
-                }
-                goto reflow_next_list_item;
-            }
-
-            if (!renderer->render_x && node->textAlign) {
-                // Begin calculating x offset for text alignment
-                cumulative_widgets_width = widget->width;
-                cumulative_list_item = widget_list_item->next;
-                while (cumulative_list_item && cumulative_list_item->widget && cumulative_list_item->widget->data) {
-                    cumulative_node = cumulative_list_item->widget->data;
-                    if (cumulative_node->display_block || !StrICmp(cumulative_node->tagName, "br")) {
-                        cumulative_list_item = NULL;
-                    } else {
-                        cumulative_widgets_width += cumulative_list_item->widget->width;
-                        cumulative_list_item = cumulative_list_item->next;
+                    while (renderer->render_y < y1) {
+                        ++renderer->render_y;
                     }
                 }
-                switch (node->textAlign) {
-                case CSS_TEXT_ALIGN_CENTER:
-                    renderer->render_x = (renderer->win->width / 2) - (cumulative_widgets_width / 2);
-                    break;
-                case CSS_TEXT_ALIGN_RIGHT:
-                    renderer->render_x = -8 + renderer->win->width - cumulative_widgets_width;
-                    break;
-                default:
-                    "ERROR: Invalid node->textAlign value: %d\n", node->textAlign;
-                    PressAKey;
-                    break;
+            } else {
+                widget->x = renderer->render_x;
+                widget->y = renderer->render_y + offset_y;
+                @reflow_push_state(renderer, x1, x2, renderer->render_y + widget->height, parent);
+                parent = widget;
+                if (node->display == CSS_DISPLAY_INLINE_BLOCK) {
+                    x1 = renderer->render_x;
+                }
+                if (node->display == CSS_DISPLAY_BLOCK) {
+                    if (renderer->render_x > x1) {
+                        renderer->render_y += renderer->max_line_height;
+                    }
+                    renderer->render_x = x1;
+                    renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+                }
+                if (widget->width > 0) {
+                    x2 = widget->x + widget->width;
                 }
             }
+            goto reflow_next_wl_item;
+        default:
+            break;
+        }
 
-            line_break_max = 8;
-            if (!node->textAlign) {
-                line_break_max += widget->width + 16;
-            }
+        if (!StrICmp(node->tagName, "br")) {
+            renderer->render_x = x1;
+            renderer->render_y += renderer->max_line_height;
+            renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+            goto reflow_next_wl_item;
+        }
 
-            widget->x = renderer->render_x;
-            widget->y = renderer->render_y + offset_y;
-
-            if (@self_or_ancestor_matches_tag_name(node, "a")) {
-                widget->pointer = renderer->link_pointer;
-                Gui.Widget.SetCallback(widget, "clicked", renderer->link_callback);
-            }
-
-            renderer->render_x += widget->width;
-            renderer->max_line_height = Max(renderer->max_line_height, widget->height);
-
-            if (renderer->render_x > renderer->win->width - line_break_max) {
-                renderer->render_x = 0;
-                renderer->render_y += renderer->max_line_height;
-                renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+        if (renderer->render_x == x1 && node->textAlign) {
+            indent_x = @reflow_cumulative_width(wl_item, x2 - x1);
+            switch (node->textAlign) {
+            case CSS_TEXT_ALIGN_CENTER:
+                renderer->render_x = ((x2 - x1) / 2) - (indent_x / 2);
+                break;
+            case CSS_TEXT_ALIGN_RIGHT:
+                renderer->render_x = -8 + x2 - indent_x;
+                break;
+            default:
+                // Invalid node->textAlign value; default to text-align: left;
+                break;
             }
         }
-    reflow_next_list_item:
 
-        widget_list_item = widget_list_item->next;
+        if (renderer->render_x > x2 - widget->width) {
+            renderer->render_x = x1;
+            renderer->render_y += renderer->max_line_height;
+            renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+        }
+
+        widget->x = renderer->render_x;
+        widget->y = renderer->render_y + offset_y;
+
+        if (@self_or_ancestor_matches_tag_name(node, "a")) {
+            widget->pointer = renderer->link_pointer;
+            Gui.Widget.SetCallback(widget, "clicked", renderer->link_callback);
+        }
+
+        renderer->render_x += widget->width;
+        renderer->max_line_height = Max(renderer->max_line_height, widget->height);
+
+    reflow_next_wl_item:
+        wl_item = wl_item->next;
     }
 
     if (renderer->render_x) {
-        renderer->render_x = 0;
+        renderer->render_x = x1;
         renderer->render_y += renderer->max_line_height;
         renderer->max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
     }

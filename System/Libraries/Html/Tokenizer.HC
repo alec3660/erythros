@@ -100,7 +100,7 @@ class @html_dom_node : JsonElement
     I64 fontSize;
     I64 fontWeight;
     Bool italic;
-    Bool display_block;
+    I64 display;
 };
 
 class @html_input_buffer
