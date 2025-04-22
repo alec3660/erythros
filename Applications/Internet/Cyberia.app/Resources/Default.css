@@ -48,3 +48,7 @@ mark {
     background-color: yellow;
     color: black
 }
+
+table {
+    text-align: left;
+}
