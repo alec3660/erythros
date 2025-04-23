@@ -392,17 +392,20 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
 
                     if (!StrICmp(key->name, "display")) {
                         if (!StrICmp(values->@(0), "none")) {
-                            return FALSE;
-                        }
-                        if (!StrICmp(values->@(0), "block")) {
-                            node->display = CSS_DISPLAY_BLOCK;
-                        } else if (!StrICmp(values->@(0), "inline")) {
-                            node->display = CSS_DISPLAY_INLINE;
-                        } else if (!StrICmp(values->@(0), "inline-block")) {
-                            node->display = CSS_DISPLAY_INLINE_BLOCK;
+                            should_display = FALSE;
+                            node->display = CSS_DISPLAY_NONE;
                         } else {
-                            // FIXME: unimplemented; default to inline
-                            node->display = CSS_DISPLAY_INLINE;
+                            should_display = TRUE;
+                            node->display = CSS_DISPLAY_INLINE; // default to inline
+                            if (!StrICmp(values->@(0), "block")) {
+                                node->display = CSS_DISPLAY_BLOCK;
+                            }
+                            if (!StrICmp(values->@(0), "inline")) {
+                                node->display = CSS_DISPLAY_INLINE;
+                            }
+                            if (!StrICmp(values->@(0), "inline-block")) {
+                                node->display = CSS_DISPLAY_INLINE_BLOCK;
+                            }
                         }
                     }
 
