@@ -473,6 +473,10 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
                             node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
                             node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
                         }
+                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "pt")) {
+                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                            node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * 1.33333333);
+                        }
                         if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
                             node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
                             node->fontSize = Str2I64(node_tmpnum_buf);
