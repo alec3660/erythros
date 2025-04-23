@@ -988,6 +988,9 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
 }
 
+JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
+JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
+
 U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !renderer)
@@ -1014,8 +1017,8 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
         for (i = 0; i < renderer->indent; i++)
             "  ";
-        "<%s> textAlign: %d, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display: %d\n",
-            node->tagName, node->textAlign, node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, node->display;
+        "<%s> class: '%s', textAlign: %s, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display: %s\n", node->tagName, T(node->attributes->@("class"), node->attributes->@("class"), ""),
+            text_align_values->@(node->textAlign), node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, display_values->@(node->display);
     }
 
     // Insert a block widget for the element's opening tag
