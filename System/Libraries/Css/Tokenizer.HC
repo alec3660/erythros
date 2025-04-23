@@ -68,6 +68,7 @@ Bool @css_try_append_match(@css_tokenizer* t)
     U8* match;
     if (FifoU8Cnt(t->match_fifo)) {
         match = @json_string_from_fifo(t->match_fifo, Fs);
+        String.Trim(match);
         t->current_rule->a("matches")->append(match);
         return TRUE;
     }
@@ -104,6 +105,7 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
     @css_init_tokenizer(&t, buffer, size, mem_task);
     I64 brace_depth = 0;
     JsonItem* item;
+    U8 check_whitespace_char;
     while (t.pos < t.size) {
         I64 token = t.buffer[t.pos];
         switch (t.state) {
@@ -250,6 +252,11 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             case '\t':
             case '\r':
             case '\n':
+                FifoU8Peek(t.match_fifo, &check_whitespace_char);
+                if (check_whitespace_char != ' ') {
+                    FifoU8Ins(t.match_fifo, ' ');
+                }
+                break;
             case ',':
                 if (FifoU8Cnt(t.match_fifo))
                     @css_try_append_match(&t);
