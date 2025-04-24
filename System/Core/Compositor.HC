@@ -8,7 +8,7 @@ U0 @compositor_init_truetype_fonts()
     U8* name_ptr;
     I32 length;
     while (de) {
-        info = CAlloc2(sizeof(stbtt_fontinfo), adam_task);
+        info = CAlloc(sizeof(stbtt_fontinfo), adam_task);
         if (@stbtt_InitFont(info, FileRead(de->full_name), 0)) {
             MemSet(name_buffer, NULL, 512);
             name_ptr = @stbtt_GetFontNameDefault(info, &length);
@@ -122,7 +122,7 @@ class @compositor
 U0 @compositor_add_window_to_list(Window* win)
 {
     @compositor_windows_list* win_list = Compositor.windows;
-    @compositor_windows_list* win_next = CAlloc2(sizeof(@compositor_windows_list));
+    @compositor_windows_list* win_next = CAlloc(sizeof(@compositor_windows_list));
     while (win_list->next) {
         win_list = win_list->next;
     }
@@ -134,7 +134,7 @@ U0 @compositor_add_window_to_list(Window* win)
 U0 @compositor_add_global_input_event_listener_to_list(Window* win)
 {
     @compositor_windows_list* win_list = Compositor.global_input_event_listeners;
-    @compositor_windows_list* win_next = CAlloc2(sizeof(@compositor_windows_list));
+    @compositor_windows_list* win_next = CAlloc(sizeof(@compositor_windows_list));
     while (win_list->next) {
         win_list = win_list->next;
     }
@@ -164,7 +164,7 @@ U0 @compositor_remove_global_input_event_listener_from_list(Window* win)
 
 U0 @compositor_refresh(Window* win)
 {
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = win->client;
     msg->type = CPZ_MSG_WIN_REPAINT;
     msg->payload = win;
@@ -223,7 +223,7 @@ U0 @compositor_set_z_index_send_msg(Window* win, I64 index)
 {
     if (!win)
         return;
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = win->client;
     msg->type = CPZ_MSG_WIN_SET_Z_INDEX;
     msg->payload = win;
@@ -290,7 +290,7 @@ U0 @compositor_set_wallpaper_send_msg(Context2D* ctx, U32 mode = CPZ_WALLPAPER_A
 {
     if (!ctx)
         return;
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = Fs;
     msg->type = CPZ_MSG_SET_WALLPAPER;
     msg->payload = ctx;
@@ -320,7 +320,7 @@ U0 @compositor_ipc_queue_process()
             System.Log(Fs, "Received message ← CreateWindow (%dx%d at %d, %d)",
                 win->width, win->height, win->x, win->y);
             Free(msg);
-            msg = CAlloc2(sizeof(IpcMessage));
+            msg = CAlloc(sizeof(IpcMessage));
             msg->client = win->client;
             msg->type = CPZ_MSG_WIN_REPAINT;
             msg->payload = win;
@@ -518,7 +518,7 @@ U0 @compositor_set_active_window(Window* win)
         win_list = win_list->next;
     }
     if (Compositor.active_win && Compositor.active_win != win) {
-        msg = CAlloc2(sizeof(IpcMessage));
+        msg = CAlloc(sizeof(IpcMessage));
         msg->client = Compositor.active_win->client;
         msg->type = CPZ_MSG_WIN_REPAINT;
         msg->payload = Compositor.active_win;
@@ -531,7 +531,7 @@ U0 @compositor_set_active_window(Window* win)
     }
     System.Log(Fs, "SetActiveWindow (%dx%d at %d, %d)", win->width, win->height,
         win->x, win->y);
-    msg = CAlloc2(sizeof(IpcMessage));
+    msg = CAlloc(sizeof(IpcMessage));
     msg->client = win->client;
     msg->type = CPZ_MSG_WIN_REPAINT;
     msg->payload = win;
@@ -583,7 +583,7 @@ U0 @compositor_handle_window_resize()
         new_height = Max(Compositor.theme.window.min_height, new_height);
         if (Compositor.active_win->width != new_width || Compositor.active_win->height != new_height && !Compositor.active_win->repainting) {
             Window* win = Compositor.active_win;
-            IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+            IpcMessage* msg = CAlloc(sizeof(IpcMessage));
             System.Log(Fs,
                 "Sent message → WindowResizeTo (%dx%d at %d, %d) to (%dx%d)",
                 Compositor.active_win->width, Compositor.active_win->height,
@@ -673,7 +673,7 @@ U0 @compositor_handle_window_drag()
         new_y = Compositor.active_win->origin.y + (Mouse.y - Compositor.active_win->origin.mouse_y);
         if (Compositor.active_win->x != new_x || Compositor.active_win->y != new_y) {
             Window* win = Compositor.active_win;
-            IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+            IpcMessage* msg = CAlloc(sizeof(IpcMessage));
             System.Log(
                 Fs, "Sent message → WindowMoveTo (%dx%d at %d, %d) to (%d, %d)",
                 Compositor.active_win->width, Compositor.active_win->height,
@@ -729,7 +729,7 @@ U0 @compositor_handle_global_input_events()
 
         @compositor_windows_list* win_list = Compositor.global_input_event_listeners->next;
         while (win_list) {
-            msg = CAlloc2(sizeof(IpcMessage));
+            msg = CAlloc(sizeof(IpcMessage));
             System.Log(Fs, "Sent message → WinKeyPress [%08x] to window 0x%08x", key,
                 win_list->window);
             msg->client = win_list->window->client;
@@ -767,7 +767,7 @@ U0 @compositor_handle_window_input_events(Window* win)
     if (win->focused_widget) {
         if (win->focused_widget->type == WIDGET_TYPE_INPUT) {
             if (@widget_input_handle_key(win->focused_widget)) {
-                msg = CAlloc2(sizeof(IpcMessage));
+                msg = CAlloc(sizeof(IpcMessage));
                 System.Log(Fs, "Sent message → WinKeyPress");
                 msg->client = win->client;
                 msg->type = CPZ_MSG_WIN_KEY_PRESS;
@@ -789,7 +789,7 @@ U0 @compositor_handle_window_input_events(Window* win)
     }
 
     if (Mouse.z != Compositor.mouse.delta_z) {
-        msg = CAlloc2(sizeof(IpcMessage));
+        msg = CAlloc(sizeof(IpcMessage));
         System.Log(Fs, "Sent message → WindowMouseWheel");
         msg->client = win->client;
         msg->type = CPZ_MSG_WIN_MOUSE_WHEEL;
@@ -804,7 +804,7 @@ U0 @compositor_handle_window_input_events(Window* win)
             if (Mouse.x >= win->x && Mouse.x <= win->x + win->width && Mouse.y >= win->y && Mouse.y <= win->y + win->height && (mouse_x != win->mouse.x || mouse_y != win->mouse.y)) {
                 win->mouse.x = mouse_x;
                 win->mouse.y = mouse_y;
-                msg = CAlloc2(sizeof(IpcMessage));
+                msg = CAlloc(sizeof(IpcMessage));
                 System.Log(Fs, "Sent message → WindowMouseAt (%dx%d)", mouse_x,
                     mouse_y);
                 msg->client = win->client;
@@ -829,7 +829,7 @@ U0 @compositor_handle_window_input_events(Window* win)
             win->mouse.left = mouse_left;
             win->left_btn_down.x = Mouse.x - win->x;
             win->left_btn_down.y = Mouse.y - win->y;
-            msg = CAlloc2(sizeof(IpcMessage));
+            msg = CAlloc(sizeof(IpcMessage));
             msg->client = win->client;
             msg->type = type;
             msg->payload = win;
@@ -851,7 +851,7 @@ U0 @compositor_handle_window_input_events(Window* win)
             win->mouse.right = mouse_right;
             win->right_btn_down.x = Mouse.x - win->x;
             win->right_btn_down.y = Mouse.y - win->y;
-            msg = CAlloc2(sizeof(IpcMessage));
+            msg = CAlloc(sizeof(IpcMessage));
             msg->client = win->client;
             msg->type = type;
             msg->payload = win;
@@ -885,8 +885,8 @@ Window* @compositor_create_window(I64 x, I64 y, I64 width, I64 height,
     I64 flags = WIN_FLAGS_DEFAULT,
     U8* title = NULL, Context2D* icon = NULL)
 {
-    Window* win = CAlloc2(sizeof(Window));
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    Window* win = CAlloc(sizeof(Window));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     win->x = x;
     win->y = y;
     win->width = width;
@@ -896,7 +896,7 @@ Window* @compositor_create_window(I64 x, I64 y, I64 width, I64 height,
     win->icon = icon;
     win->client = Fs;
     win->signature = WIN_SIGNATURE;
-    win->widget = CAlloc2(sizeof(@window_widgets_list));
+    win->widget = CAlloc(sizeof(@window_widgets_list));
     win->callback.close = &@gui_window_callback_close;
     win->callback.maximize = &@gui_window_callback_maximize;
     win->callback.minimize = &@gui_window_callback_minimize;
@@ -918,7 +918,7 @@ Window* @compositor_create_window(I64 x, I64 y, I64 width, I64 height,
 
 U0 @compositor_destroy_window(Window* win)
 {
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = Fs;
     msg->type = CPZ_MSG_WIN_DESTROY;
     msg->payload = win;
@@ -1017,8 +1017,8 @@ U0 @compositor_init()
 {
     Compositor.blend_ctx = NewContext2D(Display.Width(), Display.Height());
     Compositor.ctx = NewContext2D(Display.Width(), Display.Height());
-    Compositor.windows = CAlloc2(sizeof(@compositor_windows_list));
-    Compositor.global_input_event_listeners = CAlloc2(sizeof(@compositor_windows_list));
+    Compositor.windows = CAlloc(sizeof(@compositor_windows_list));
+    Compositor.global_input_event_listeners = CAlloc(sizeof(@compositor_windows_list));
     Compositor.bounds.x1 = -Display.Width();
     Compositor.bounds.y1 = 33;
     Compositor.bounds.x2 = Display.Width();

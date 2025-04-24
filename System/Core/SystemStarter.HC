@@ -68,14 +68,12 @@ I64 @systemstarter_open(@shell* sh, I64 argc, U8** argv)
 U0 @systemstarter_spawn(U8* path, U8* name)
 {
     CTask* task = Spawn(&UserCmdLine);
-    Sleep(Rand * 100);
     U8 change_path_str[512];
     StrPrint(task->task_name, name);
     StrPrint(change_path_str, "Cd(\"%s\");\n", path);
     TaskExe(task, NULL, "Raw(ON);\n", 0);
     TaskExe(task, NULL, change_path_str, 0);
     TaskExe(task, NULL, "ExeFile(\"Run.HC\");\n", 0);
-    Sleep(Rand * 100);
 }
 
 U0 @systemstarter_load_applets()
@@ -97,12 +95,12 @@ U0 @systemstarter_play_user_startup_sound()
     U8 path[512];
     StrPrint(&path, "/home/%s/.sounds/startup.wav",
         &Compositor.session.user.name);
-    U8** argv = CAlloc2(sizeof(U64) * 2);
+    U8** argv = CAlloc(sizeof(U64) * 2);
     argv[0] = "aplay";
     argv[1] = &path;
     @shell* sh = @shell_new(TRUE);
     sh->session = &Compositor.session;
-    //@shell_cmd_aplay(sh, 2, argv);
+    @shell_cmd_aplay(sh, 2, argv);
     Free(sh);
 }
 
@@ -111,7 +109,7 @@ U0 @systemstarter_set_user_wallpaper()
     U8 path[512];
     StrPrint(&path, "/home/%s/.wallpaper/wallpaper.png",
         &Compositor.session.user.name);
-    U8** argv = CAlloc2(sizeof(U64) * 2);
+    U8** argv = CAlloc(sizeof(U64) * 2);
     argv[0] = "wpset";
     argv[1] = &path;
     //@shell_cmd_wpset(NULL, 2, argv);
@@ -196,8 +194,8 @@ U0 @systemstarter_task()
 
 U0 @systemstarter_create_task(U8* path, U8* name)
 {
-    @systemtask* st = CAlloc2(sizeof(@systemtask));
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    @systemtask* st = CAlloc(sizeof(@systemtask));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     st->path = StrNew(path);
     st->name = StrNew(name);
     msg->client = NULL;

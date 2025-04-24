@@ -12,9 +12,7 @@ U0 bcmp()
 
 U64 @calloc(I64 size)
 {
-    U64 res = CAlloc(size, calloc_mem_task[calloc_current_mem_task % CALLOC_MEM_TASK_COUNT]->code_heap);
-    calloc_current_mem_task++;
-    return res;
+    return CAlloc(size, erythros_mem_task->code_heap);
 }
 
 U0 calloc()
@@ -127,9 +125,7 @@ U0 ntohs()
 
 U64 @malloc(I64 size)
 {
-    U64 res = MAlloc(size, malloc_mem_task[malloc_current_mem_task % MALLOC_MEM_TASK_COUNT]->code_heap);
-    malloc_current_mem_task++;
-    return res;
+    return MAlloc(size, erythros_mem_task->code_heap);
 }
 
 U0 malloc()

@@ -26,7 +26,7 @@ U0 @systemtray_register_item(I64 addr)
 
 U0 @systemtray_unregister_item(Widget* item)
 {
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = NULL;
     msg->type = CPZ_MSG_WIN_WIDGET_DESTROY;
     msg->payload = item;
@@ -87,7 +87,7 @@ U0 @systemtray_task()
 Context2DWidget* @systemtray_client_register_item()
 {
     Context2DWidget* item = NULL;
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = NULL;
     msg->type = SYSTRAY_MSG_REGISTER;
     msg->payload = &item;
@@ -100,7 +100,7 @@ Context2DWidget* @systemtray_client_register_item()
 
 U0 @systemtray_client_unregister_item(Widget* item)
 {
-    IpcMessage* msg = CAlloc2(sizeof(IpcMessage));
+    IpcMessage* msg = CAlloc(sizeof(IpcMessage));
     msg->client = NULL;
     msg->type = SYSTRAY_MSG_UNREGISTER;
     msg->payload = item;

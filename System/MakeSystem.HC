@@ -4,6 +4,8 @@ DocMax(adam_task);
 WinMax(adam_task);
 WinToTop(adam_task);
 
+#include "Setup/Util";
+#include "Setup/MAlloc";
 #include "Setup/Environment";
 
 // Erythros system drivers
