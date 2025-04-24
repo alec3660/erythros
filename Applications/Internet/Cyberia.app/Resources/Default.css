@@ -52,3 +52,7 @@ mark {
 table {
     text-align: left;
 }
+
+tr {
+    display: block;
+}
