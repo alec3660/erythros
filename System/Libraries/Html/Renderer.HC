@@ -93,7 +93,7 @@ class @html_renderer
 
 #define HtmlRenderer @html_renderer
 
-#define HTML_WORK_BUFFER_SIZE 2048
+#define HTML_WORK_BUFFER_SIZE 4096
 
 // Initialize CSS default rules
 JsonArray* CSS_DEFAULT_RULES = Json.CreateArray(erythros_mem_task);
@@ -283,34 +283,361 @@ U32 @css_resolve_color_from_rrggbb(U8* str)
     }
 }
 
-Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
+Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
 {
-    I64 i, j, k;
-    JsonObject* rule = NULL;
-    JsonArray* matches = NULL;
-    JsonObject* properties = NULL;
-    JsonKey* key = NULL;
-    JsonArray* values = NULL;
-    U8* selector = NULL;
-    Bool matched = FALSE;
     Bool should_display = TRUE;
-    U8 node_classes_buffer[HTML_WORK_BUFFER_SIZE];
-    U8 prepend_buffer[64];
-    U8 append_buffer[64];
-    MemSet(prepend_buffer, 0, 64);
-    MemSet(append_buffer, 0, 64);
+    I64 i, j;
+    JsonArray* values = NULL;
+    JsonKey* font_key = NULL;
+    JsonKey* key = properties->keys;
     U8 node_tmpnum_buf[16];
-    U8** node_classes;
-    I64 node_classes_count = 0;
-    I64 color = TRANSPARENT;
-    U8 node_ptr_string[32];
-    U8* tmpmd5;
-    U8* match_font_family;
-    JsonKey* font_key;
+    U8* match_font_family = NULL;
 
-    if (!node)
+    for (i = 0; i < properties->length; i++) {
+        values = properties->@(key->name);
+
+        if (!StrICmp(key->name, "display")) {
+            if (!StrICmp(values->@(0), "none")) {
+                should_display = FALSE;
+                node->display = CSS_DISPLAY_NONE;
+            } else {
+                should_display = TRUE;
+                node->display = CSS_DISPLAY_INLINE; // default to inline
+                if (!StrICmp(values->@(0), "block")) {
+                    node->display = CSS_DISPLAY_BLOCK;
+                }
+                if (!StrICmp(values->@(0), "inline")) {
+                    node->display = CSS_DISPLAY_INLINE;
+                }
+                if (!StrICmp(values->@(0), "inline-block")) {
+                    node->display = CSS_DISPLAY_INLINE_BLOCK;
+                }
+            }
+        }
+
+        if (!StrICmp(key->name, "background") || !StrICmp(key->name, "background-color")) {
+            if (@css_named_colors->@(values->@(0))) {
+                node->backgroundColor = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
+            } else if (values->@(0)(U8*)[0] == '#') {
+                node->backgroundColor = @css_resolve_color_from_rrggbb(values->@(0));
+            } else {
+                // unsupported
+            }
+        }
+
+        if (!StrICmp(key->name, "color")) {
+            if (@css_named_colors->@(values->@(0))) {
+                node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
+            } else if (values->@(0)(U8*)[0] == '#') {
+                node->color = @css_resolve_color_from_rrggbb(values->@(0));
+            } else {
+                // unsupported
+            }
+        }
+
+        if (!StrICmp(key->name, "width") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+            StrCpy(node_tmpnum_buf, values->@(0));
+            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+            node->width = Str2I64(node_tmpnum_buf);
+        }
+
+        if (!StrICmp(key->name, "height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+            StrCpy(node_tmpnum_buf, values->@(0));
+            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+            node->height = Str2I64(node_tmpnum_buf);
+        }
+
+        if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "left"))
+            node->textAlign = CSS_TEXT_ALIGN_LEFT;
+        if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "center"))
+            node->textAlign = CSS_TEXT_ALIGN_CENTER;
+        if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "right"))
+            node->textAlign = CSS_TEXT_ALIGN_RIGHT;
+
+        if (!StrICmp(key->name, "text-decoration") || !StrICmp(key->name, "text-decoration-line")) {
+            if (!StrICmp(values->@(0), "none")) {
+                node->linethroughColor = 0;
+                node->underlineColor = 0;
+            }
+            if (!StrICmp(values->@(0), "line-through")) {
+                node->linethroughColor = node->color;
+            }
+            if (!StrICmp(values->@(0), "underline")) {
+                node->underlineColor = node->color;
+            }
+        }
+
+        if (!StrICmp(key->name, "line-height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+            StrCpy(node_tmpnum_buf, values->@(0));
+            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+            node->fontSize = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
+        }
+
+        if (!StrICmp(key->name, "font-size")) {
+            StrCpy(node_tmpnum_buf, values->@(0));
+            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "em")) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+            }
+            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "pt")) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * 1.33333333);
+            }
+            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->fontSize = Str2I64(node_tmpnum_buf);
+            }
+        }
+
+        if (!StrICmp(key->name, "font-weight")) {
+            if (values->@(0)(U8*)[0] >= '0' && values->@(0)(U8*)[0] <= '9') {
+                node->fontWeight = Str2I64(values->@(0));
+            }
+            if (!StrICmp(values->@(0), "bold")) {
+                node->fontWeight = 700;
+            }
+            if (!StrICmp(values->@(0), "normal")) {
+                node->fontWeight = 400;
+            }
+        }
+
+        if (!StrICmp(key->name, "font-family")) {
+            for (j = 0; j < values->length; j++) {
+
+                match_font_family = values->@(j);
+                String.Trim(match_font_family);
+                String.Trim(match_font_family, '"');
+
+                font_key = Fonts->keys;
+                while (font_key) {
+                    if (!StrICmp(font_key->name, match_font_family)) {
+                        node->fontFamily = font_key->name;
+                        goto css_continue_to_next_property;
+                    }
+                    font_key = font_key->next;
+                }
+            }
+        }
+
+        if (!StrICmp(key->name, "font-style")) {
+            if (!StrICmp(values->@(0), "italic")) {
+                node->italic = TRUE;
+            }
+        }
+    css_continue_to_next_property:
+        key = key->next;
+    }
+    return should_display;
+}
+
+Bool @css_selector_contains_combinator(U8* selector)
+{
+    U8* combinators = ">| +~";
+    while (*selector) {
+        if (StrOcc(combinators, *selector))
+            return TRUE;
+        ++selector;
+    }
+    return FALSE;
+}
+
+Bool @css_selector_is_compound_selector(U8* selector)
+{
+    U8* tokens = ".:[#";
+    ++selector;
+    while (*selector) {
+        if (StrOcc(tokens, *selector))
+            return TRUE;
+        ++selector;
+    }
+    return FALSE;
+}
+
+Bool @node_matches_simple_selector(@html_dom_node* node, U8* selector)
+{
+    //"node: 0x%08x, selector: %s, ", node, selector;
+    //"attributes: %s\n", Json.Stringify(node->attributes, erythros_mem_task);
+    Bool match = FALSE;
+    U8** node_classes = NULL;
+    I64 node_classes_count = 0;
+    U8 buffer[HTML_WORK_BUFFER_SIZE];
+    U8* name = NULL;
+    U8* value = NULL;
+
+    I64 i = 0;
+    U8 ptr_to_c_string[32];
+    U8* ptr_to_md5_string = NULL;
+    switch (*selector) {
+    case '\xfe':
+        StrPrint(ptr_to_c_string, "0x%08x", node);
+        ptr_to_md5_string = md5_string(ptr_to_c_string, StrLen(ptr_to_c_string));
+        if (!StrCmp(selector + 1, ptr_to_md5_string)) {
+            match = TRUE;
+        }
+        Free(ptr_to_md5_string);
+        return match;
+    case '#':
+        if (!node->attributes->@("id"))
+            return FALSE;
+        return !StrCmp(selector + 1, node->attributes->@("id"));
+    case '.':
+        if (!node->attributes->@("class"))
+            return FALSE;
+        if (!StrOcc(node->attributes->@("class"), ' ')) {
+            if (!StrCmp(selector + 1, node->attributes->@("class"))) {
+                match = TRUE;
+            }
+        } else {
+            MemSet(buffer, 0, HTML_WORK_BUFFER_SIZE);
+            StrCpy(buffer, node->attributes->@("class"));
+            node_classes = String.Split(buffer, ' ', &node_classes_count);
+            for (i = 0; i < node_classes_count; i++) {
+                if (!StrCmp(selector + 1, node_classes[i])) {
+                    match = TRUE;
+                    i = node_classes_count;
+                }
+            }
+            Free(node_classes);
+        }
+        return match;
+    case '[':
+        if (selector[StrLen(selector) - 1] == ']') {
+            StrCpy(buffer, selector + 1);
+            value = buffer + StrLen(buffer) - 1;
+            while (StrOcc("'\"]", *value)) {
+                *value = NULL;
+                --value;
+            }
+            while (!StrOcc("'\"=", *value)) {
+                --value;
+            }
+            name = value;
+            ++value;
+            while (StrOcc("'\"=", *value)) {
+                *name = NULL;
+                --name;
+            }
+            name = buffer;
+            if (StrLen(name) && node->attributes->@(name) && !StrCmp(node->attributes->@(name), value)) {
+                match = TRUE;
+            }
+        }
+        return match;
+    default:
+        break;
+    }
+    return !StrICmp(node->tagName, selector);
+}
+
+Bool @node_matches_compound_selector(@html_dom_node* node, U8* compound_selector)
+{
+    U8 buffer[HTML_WORK_BUFFER_SIZE];
+    U8* tokens = ".:[#";
+    I64 i = 0;
+    I64 j = 1;
+    I64 length = StrLen(compound_selector);
+    while (j && j < length) {
+        if (StrOcc(tokens, compound_selector[j])) {
+            MemSet(buffer, 0, length);
+            MemCpy(buffer, compound_selector + i, j - i);
+            i = j;
+            //"nmcs: try: 0x%08x, %s\n", node, buffer;
+            if (!@node_matches_simple_selector(node, buffer))
+                return FALSE;
+        }
+        ++j;
+    }
+    //"nmcs: end: 0x%08x, %s\n", node, compound_selector + i;
+    return @node_matches_simple_selector(node, compound_selector + i);
+}
+
+@html_dom_node* @ancestor_who_matches_compound_selector(@html_dom_node* node, U8* selector)
+{
+    while (node) {
+        //"amcs: node: 0x%08x, selector: %s\n", node, selector;
+        if (@node_matches_compound_selector(node, selector))
+            return node;
+        node = node->parentNode;
+    }
+    return NULL;
+}
+
+Bool @node_matches_selector_with_combinator(@html_dom_node* node, U8* selector_with_combinator)
+{
+    //"nmswc: node: 0x%08x, swc: %s\n", node, selector_with_combinator;
+    // FIXME: We only handle the descendant combinator for now
+    U8* ch = selector_with_combinator;
+    while (*ch) {
+        if (StrOcc(">|+~", *ch))
+            return FALSE;
+        ++ch;
+    }
+
+    @html_dom_node* ancestor = NULL;
+    U8 buffer[HTML_WORK_BUFFER_SIZE];
+    StrCpy(buffer, selector_with_combinator);
+    String.Trim(buffer);
+    U8* selector_for_ancestor = NULL;
+
+    U8* selector_for_node = buffer + StrLen(buffer) - 1;
+    while (*selector_for_node != ' ') {
+        --selector_for_node;
+    }
+
+    ancestor = node->parentNode;
+    selector_for_ancestor = selector_for_node;
+    ++selector_for_node;
+
+    if (!@node_matches_compound_selector(node, selector_for_node))
         return FALSE;
-    if (node->parentNode) {
+
+    // We matched the selector for node, now let's match the selectors for ancestors
+
+    while (selector_for_ancestor > buffer) {
+        // null terminate the selector for ancestor
+        while (*selector_for_ancestor == ' ') {
+            *selector_for_ancestor = NULL;
+            --selector_for_ancestor;
+        }
+        // move selector for ancestor pointer to the left until we either:
+        // 1) hit the beginning of the buffer, or
+        // 2) hit whitespace
+        while (selector_for_ancestor > buffer && (*selector_for_ancestor != ' ')) {
+            --selector_for_ancestor;
+        }
+        if (*selector_for_ancestor == ' ')
+            ++selector_for_ancestor;
+        ancestor = @ancestor_who_matches_compound_selector(ancestor, selector_for_ancestor);
+        if (!ancestor)
+            return FALSE;
+        --selector_for_ancestor;
+    }
+    // if we got here, we must be a match
+    return TRUE;
+}
+
+Bool @node_matches_css_selector(@html_dom_node* node, U8* selector)
+{
+    // We need to handle combinators ("div ol li"), compound selectors "p.class#id", simple selectors
+
+    // FIXME: Handle combinators
+    if (@css_selector_contains_combinator(selector)) {
+        return @node_matches_selector_with_combinator(node, selector);
+        return FALSE;
+    }
+
+    // FIXME: Handle compound selectors
+    if (@css_selector_is_compound_selector(selector)) {
+        return @node_matches_compound_selector(node, selector);
+        return FALSE;
+    }
+
+    return @node_matches_simple_selector(node, selector);
+}
+
+U0 @inherit_css_values_from_parent_node(@html_dom_node* node)
+{
+    if (node && node->parentNode) {
         node->backgroundColor = node->parentNode->backgroundColor;
         node->color = node->parentNode->color;
         node->linethroughColor = node->parentNode->linethroughColor;
@@ -321,206 +648,40 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
         node->textAlign = node->parentNode->textAlign;
         node->italic = node->parentNode->italic;
     }
+}
+
+Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
+{
+
+    if (!node)
+        return FALSE;
+
+    I64 i, j;
+    JsonObject* rule = NULL;
+    JsonArray* matches = NULL;
+    JsonObject* properties = NULL;
+    U8* selector = NULL;
+    Bool matched = FALSE;
+    Bool should_display = TRUE;
+
+    @inherit_css_values_from_parent_node(node);
 
     for (i = 0; i < renderer->css_rules->length; i++) {
         rule = renderer->css_rules->@(i);
         matched = FALSE;
         if (rule->@("matches")) {
-
             matches = rule->@("matches");
             properties = rule->@("properties");
-
-            // check if node md5 hash matches
-            if (*(matches->@(0)(U8*)) == 0xFE) {
-                StrPrint(node_ptr_string, "0x%08x", node);
-                tmpmd5 = md5_string(node_ptr_string, StrLen(node_ptr_string));
-                if (!StrCmp(matches->@(0) + 1, tmpmd5)) {
-                    matched = TRUE;
-                    Free(tmpmd5);
-                    goto @css_rule_check_if_matched;
-                }
-                Free(tmpmd5);
-            }
-
-            // try to match id
-            if (*(matches->@(0)(U8*)) == '#' && node->attributes->@("id")) {
-                if (!StrCmp(matches->@(0) + 1, node->attributes->@("id"))) {
-                    matched = TRUE;
-                    goto @css_rule_check_if_matched;
-                }
-            }
-
-            // try to match selectors
             for (j = 0; j < matches->length; j++) {
                 selector = matches->@(j);
-
-                if (node->attributes->@("class") && StrFirstOcc(selector, ".")) {
-                    // node has class attribute and current selector has .class
-
-                    if (!StrFirstOcc(node->attributes->@("class"), " ")) {
-                        if (!StrCmp(node->attributes->@("class"), StrFirstOcc(selector, ".") + 1)) {
-                            matched = TRUE;
-                            goto @css_rule_check_if_matched;
-                        }
-                    } else {
-                        MemSet(node_classes_buffer, 0, HTML_WORK_BUFFER_SIZE);
-                        StrCpy(node_classes_buffer, node->attributes->@("class"));
-                        node_classes = String.Split(node_classes_buffer, ' ', &node_classes_count);
-
-                        for (k = 0; k < node_classes_count; k++) {
-                            if (!StrCmp(node_classes[k], StrFirstOcc(selector, ".") + 1)) {
-                                matched = TRUE;
-                                Free(node_classes);
-                                goto @css_rule_check_if_matched;
-                            }
-                        }
-                    }
+                if (@node_matches_css_selector(node, selector)) {
+                    matched = TRUE;
+                    goto @css_rule_check_if_matched;
                 }
             }
-
-            // try to match tagName
-            if (!StrICmp(matches->@(0), node->tagName)) {
-                matched = TRUE;
-                goto @css_rule_check_if_matched;
-            }
-
             @css_rule_check_if_matched : if (matched)
             {
-                key = properties->keys;
-                for (j = 0; j < properties->length; j++) {
-                    values = properties->@(key->name);
-
-                    if (!StrICmp(key->name, "display")) {
-                        if (!StrICmp(values->@(0), "none")) {
-                            should_display = FALSE;
-                            node->display = CSS_DISPLAY_NONE;
-                        } else {
-                            should_display = TRUE;
-                            node->display = CSS_DISPLAY_INLINE; // default to inline
-                            if (!StrICmp(values->@(0), "block")) {
-                                node->display = CSS_DISPLAY_BLOCK;
-                            }
-                            if (!StrICmp(values->@(0), "inline")) {
-                                node->display = CSS_DISPLAY_INLINE;
-                            }
-                            if (!StrICmp(values->@(0), "inline-block")) {
-                                node->display = CSS_DISPLAY_INLINE_BLOCK;
-                            }
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "background") || !StrICmp(key->name, "background-color")) {
-                        if (@css_named_colors->@(values->@(0))) {
-                            node->backgroundColor = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
-                        } else if (values->@(0)(U8*)[0] == '#') {
-                            node->backgroundColor = @css_resolve_color_from_rrggbb(values->@(0));
-                        } else {
-                            // unsupported
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "color")) {
-                        if (@css_named_colors->@(values->@(0))) {
-                            node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
-                        } else if (values->@(0)(U8*)[0] == '#') {
-                            node->color = @css_resolve_color_from_rrggbb(values->@(0));
-                        } else {
-                            // unsupported
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "width") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
-                        StrCpy(node_tmpnum_buf, values->@(0));
-                        node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->width = Str2I64(node_tmpnum_buf);
-                    }
-
-                    if (!StrICmp(key->name, "height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
-                        StrCpy(node_tmpnum_buf, values->@(0));
-                        node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->height = Str2I64(node_tmpnum_buf);
-                    }
-
-                    if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "left"))
-                        node->textAlign = CSS_TEXT_ALIGN_LEFT;
-                    if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "center"))
-                        node->textAlign = CSS_TEXT_ALIGN_CENTER;
-                    if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "right"))
-                        node->textAlign = CSS_TEXT_ALIGN_RIGHT;
-
-                    if (!StrICmp(key->name, "text-decoration") || !StrICmp(key->name, "text-decoration-line")) {
-                        if (!StrICmp(values->@(0), "none")) {
-                            node->linethroughColor = 0;
-                            node->underlineColor = 0;
-                        }
-                        if (!StrICmp(values->@(0), "line-through")) {
-                            node->linethroughColor = node->color;
-                        }
-                        if (!StrICmp(values->@(0), "underline")) {
-                            node->underlineColor = node->color;
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "line-height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
-                        StrCpy(node_tmpnum_buf, values->@(0));
-                        node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                        node->fontSize = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
-                    }
-
-                    if (!StrICmp(key->name, "font-size")) {
-                        StrCpy(node_tmpnum_buf, values->@(0));
-                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "em")) {
-                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                            node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
-                        }
-                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "pt")) {
-                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                            node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * 1.33333333);
-                        }
-                        if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
-                            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                            node->fontSize = Str2I64(node_tmpnum_buf);
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "font-weight")) {
-                        if (values->@(0)(U8*)[0] >= '0' && values->@(0)(U8*)[0] <= '9') {
-                            node->fontWeight = Str2I64(values->@(0));
-                        }
-                        if (!StrICmp(values->@(0), "bold")) {
-                            node->fontWeight = 700;
-                        }
-                        if (!StrICmp(values->@(0), "normal")) {
-                            node->fontWeight = 400;
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "font-family")) {
-                        for (k = 0; k < values->length; k++) {
-
-                            match_font_family = values->@(k);
-                            String.Trim(match_font_family);
-                            String.Trim(match_font_family, '"');
-
-                            font_key = Fonts->keys;
-                            while (font_key) {
-                                if (!StrICmp(font_key->name, match_font_family)) {
-                                    node->fontFamily = font_key->name;
-                                    goto css_continue_to_next_property;
-                                }
-                                font_key = font_key->next;
-                            }
-                        }
-                    }
-
-                    if (!StrICmp(key->name, "font-style")) {
-                        if (!StrICmp(values->@(0), "italic")) {
-                            node->italic = TRUE;
-                        }
-                    }
-                css_continue_to_next_property:
-                    key = key->next;
-                }
+                should_display = @apply_css_properties_to_node(node, properties);
             }
         }
     }
