@@ -25,6 +25,7 @@ class @css_tokenizer
     I64 state;
     I64 previous_state;
     I64 in_quote_char;
+    Bool in_paren;
     CFifoU8* match_fifo;
     CFifoU8* property_fifo;
     CFifoU8* value_fifo;
@@ -54,6 +55,7 @@ U0 @css_init_tokenizer(@css_tokenizer* t, U8* buffer, I64 size, CTask* mem_task 
     t->buffer = buffer;
     t->pos = 0;
     t->in_quote_char = 0;
+    t->in_paren = FALSE;
     t->size = size;
     t->state = CSS_TOKENIZER_STATE_CONSUME_MATCH;
     t->match_fifo = FifoU8New(1024);
@@ -134,6 +136,11 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             break;
         case CSS_TOKENIZER_STATE_CONSUME_VALUE:
             switch (token) {
+            case '(':
+            case ')':
+                t.in_paren = T(token == '(', TRUE, FALSE);
+                FifoU8Ins(t.value_fifo, token);
+                goto @css_tokenizer_continue;
             case '\'':
             case '"':
                 if (t.in_quote_char == token) {
@@ -161,8 +168,11 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             case '\t':
             case '\r':
             case '\n':
+                if (t.in_paren) {
+                    goto @css_tokenizer_continue;
+                }
             case ',':
-                if (t.in_quote_char) {
+                if (t.in_quote_char || t.in_paren) {
                     FifoU8Ins(t.value_fifo, token);
                     goto @css_tokenizer_continue;
                 }
