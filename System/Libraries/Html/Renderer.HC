@@ -589,6 +589,10 @@ Bool @node_matches_simple_selector(@html_dom_node* node, U8* selector)
     default:
         break;
     }
+    // FIXME: Hack for link styles until we implement pseudo-classes
+    if (String.EndsWith(":link", selector) && !StrICmp(node->tagName, "a")) {
+        return TRUE;
+    }
     return !StrICmp(node->tagName, selector);
 }
 
