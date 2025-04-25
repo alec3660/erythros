@@ -486,6 +486,11 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->css_rules = Json.Clone(CSS_DEFAULT_RULES, renderer->task);
     renderer->forms = Json.CreateArray(renderer->task);
     @process_css_rules_from_node_list(node_list, renderer);
+    if (renderer->debug) {
+        "=== Begin dump of CSS rules ===\n";
+        "%s\n", Json.Stringify(renderer->css_rules, renderer->task);
+        "=== End dump of CSS rules ===\n";
+    }
 
     status1->SetText("Rendering page...");
     Sleep(100);
