@@ -283,6 +283,76 @@ U32 @css_resolve_color_from_rrggbb(U8* str)
     }
 }
 
+U32 @css_resolve_color_from_rgba_tuple(U8* str)
+{
+    U8 buffer[128];
+
+    I64 i;
+    I64 comp[4];
+    I64 cnt;
+    while (*str < '0' || *str > '9') {
+        ++str;
+    }
+    StrCpy(buffer, str);
+    String.Trim(buffer, ')');
+    U8** channel = String.Split(buffer, ',', &cnt);
+
+    for (i = 0; i < 4; i++) {
+        if (StrOcc(channel[i], '%')) {
+            String.Trim(channel[i], '%');
+            comp[i] = ToI64(2.55 * Str2F64(channel[i]));
+        } else if (StrOcc(channel[i], '.')) {
+            // FIXME: Do alpha blending when we eventually support transparency
+            comp[i] = 255;
+        } else {
+            comp[i] = Str2I64(i);
+        }
+    }
+    Free(channel);
+    return Color(comp[0], comp[1], comp[2], comp[3]);
+}
+
+U32 @css_resolve_color_from_rgb_tuple(U8* str)
+{
+    U8 buffer[128];
+
+    I64 i;
+    I64 comp[3];
+    I64 cnt;
+    while (*str < '0' || *str > '9') {
+        ++str;
+    }
+    StrCpy(buffer, str);
+    String.Trim(buffer, ')');
+    U8** channel = String.Split(buffer, ',', &cnt);
+
+    for (i = 0; i < 3; i++) {
+        if (StrOcc(channel[i], '%')) {
+            String.Trim(channel[i], '%');
+            comp[i] = ToI64(2.55 * Str2F64(channel[i]));
+        } else {
+            comp[i] = Str2I64(i);
+        }
+    }
+    Free(channel);
+    return Color(comp[0], comp[1], comp[2]);
+}
+
+U0 @css_resolve_color(U32* dst, U8* str)
+{
+    if (@css_named_colors->@(str)) {
+        *dst = @css_resolve_color_from_rrggbb(@css_named_colors->@(str));
+    } else if (*str == '#') {
+        *dst = @css_resolve_color_from_rrggbb(str);
+    } else if (!MemCmp(str, "rgba", 4)) {
+        *dst = @css_resolve_color_from_rgba_tuple(str);
+    } else if (!MemCmp(str, "rgb", 3)) {
+        *dst = @css_resolve_color_from_rgb_tuple(str);
+    } else {
+        // unsupported; do nothing
+    }
+}
+
 Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
 {
     Bool should_display = TRUE;
@@ -316,23 +386,16 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
         }
 
         if (!StrICmp(key->name, "background") || !StrICmp(key->name, "background-color")) {
-            if (@css_named_colors->@(values->@(0))) {
-                node->backgroundColor = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
-            } else if (values->@(0)(U8*)[0] == '#') {
-                node->backgroundColor = @css_resolve_color_from_rrggbb(values->@(0));
+            if (!StrICmp(values->@(0), "transparent")) {
+                // FIXME: Actually do transparency
+                node->backgroundColor = node->parentNode->backgroundColor;
             } else {
-                // unsupported
+                @css_resolve_color(&node->backgroundColor, values->@(0));
             }
         }
 
         if (!StrICmp(key->name, "color")) {
-            if (@css_named_colors->@(values->@(0))) {
-                node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(values->@(0)));
-            } else if (values->@(0)(U8*)[0] == '#') {
-                node->color = @css_resolve_color_from_rrggbb(values->@(0));
-            } else {
-                // unsupported
-            }
+            @css_resolve_color(&node->color, values->@(0));
         }
 
         if (!StrICmp(key->name, "width") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
@@ -1123,19 +1186,11 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         return;
 
     if (node->attributes->@("bgcolor")) {
-        if (@css_named_colors->@(node->attributes->@("bgcolor"))) {
-            node->backgroundColor = @css_resolve_color_from_rrggbb(@css_named_colors->@(node->attributes->@("bgcolor")));
-        } else if (node->attributes->@("bgcolor")(U8*)[0] == '#') {
-            node->backgroundColor = @css_resolve_color_from_rrggbb(node->attributes->@("bgcolor"));
-        }
+        @css_resolve_color(&node->backgroundColor, node->attributes->@("bgcolor"));
     }
 
     if (node->attributes->@("color")) {
-        if (@css_named_colors->@(node->attributes->@("color"))) {
-            node->color = @css_resolve_color_from_rrggbb(@css_named_colors->@(node->attributes->@("color")));
-        } else if (node->attributes->@("color")(U8*)[0] == '#') {
-            node->color = @css_resolve_color_from_rrggbb(node->attributes->@("color"));
-        }
+        @css_resolve_color(&node->color, node->attributes->@("color"));
     }
 
     if (node->attributes->@("align")) {
