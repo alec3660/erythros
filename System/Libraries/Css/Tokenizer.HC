@@ -262,7 +262,7 @@ U0 @css_tokenize_and_create_rules_from_buffer(JsonArray* rules, U8* buffer, I64 
             case '\t':
             case '\r':
             case '\n':
-                FifoU8Peek(t.match_fifo, &check_whitespace_char);
+                FifoU8Last(t.match_fifo, &check_whitespace_char);
                 if (check_whitespace_char != ' ') {
                     FifoU8Ins(t.match_fifo, ' ');
                 }
