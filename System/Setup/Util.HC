@@ -148,3 +148,22 @@ I64 @t(Bool _condition, I64 _true, I64 _false)
 }
 
 U0 dd() { DocDump(adam_task->put_doc); }
+
+Bool FifoU8Last(CFifoU8* f, U8* _b)
+{ // Peek at back of fifo and don't remove.
+    PUSHFD
+    CLI if (f->in_ptr == f->out_ptr)
+    {
+        POPFD
+        return FALSE;
+    }
+    else
+    {
+        I64 last_ptr = f->in_ptr - 1;
+        if (last_ptr < 0)
+            last_ptr = FifoU8Cnt(f) - 1;
+        *_b = f->buf[last_ptr];
+        POPFD
+        return TRUE;
+    }
+}
