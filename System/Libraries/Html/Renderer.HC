@@ -713,6 +713,30 @@ U0 @inherit_css_values_from_parent_node(@html_dom_node* node)
     }
 }
 
+U0 @dump_node_indent(HtmlRenderer* renderer)
+{
+    I64 i;
+    for (i = 0; i < renderer->indent; i++)
+        "  ";
+}
+
+JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
+JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
+
+U0 @dump_node_info(@html_dom_node* node, HtmlRenderer* renderer, U8* comment = NULL)
+{
+    if (comment) {
+        @dump_node_indent(renderer);
+        "%s\n", comment;
+    }
+    @dump_node_indent(renderer);
+    "<%s> CSS: textAlign: %s, width: %dpx, height: %dpx, bgcolor: #0x%06x, color: #0x%06x, fontFamily: \"%s\", fontSize: %dpx, fontWeight: %d, display: %s\n",
+        node->tagName, text_align_values->@(node->textAlign), node->width, node->height, node->backgroundColor, node->color,
+        node->fontFamily, node->fontSize, node->fontWeight, display_values->@(node->display);
+    @dump_node_indent(renderer);
+    "%s\n", Json.Stringify(node->attributes, erythros_mem_task);
+}
+
 Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
 {
 
@@ -728,6 +752,8 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
     Bool should_display = TRUE;
 
     @inherit_css_values_from_parent_node(node);
+    if (renderer->debug)
+        @dump_node_info(node, renderer, "Inherited CSS values from parentNode:");
 
     for (i = 0; i < renderer->css_rules->length; i++) {
         rule = renderer->css_rules->@(i);
@@ -738,6 +764,10 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
             for (j = 0; j < matches->length; j++) {
                 selector = matches->@(j);
                 if (@node_matches_css_selector(node, selector)) {
+                    if (renderer->debug) {
+                        @dump_node_indent(renderer);
+                        "Matched selector: %s\n", selector;
+                    }
                     matched = TRUE;
                     goto @css_rule_check_if_matched;
                 }
@@ -745,6 +775,11 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
             @css_rule_check_if_matched : if (matched)
             {
                 should_display = @apply_css_properties_to_node(node, properties);
+                if (renderer->debug) {
+                    @dump_node_indent(renderer);
+                    "%s\n", Json.Stringify(properties, erythros_mem_task);
+                    @dump_node_info(node, renderer, "CSS values after match:");
+                }
             }
         }
     }
@@ -1204,9 +1239,6 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
 }
 
-JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
-JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
-
 U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !renderer)
@@ -1214,6 +1246,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     I64 i;
     U8 buf[HTML_WORK_BUFFER_SIZE];
+    U8* dump_text;
 
     Context2DWidget* block_widget;
     Context2DWidget* img_widget;
@@ -1229,13 +1262,6 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     ++renderer->indent;
 
     @apply_attribute_values_to_node(node);
-
-    if (renderer->debug && StrICmp(node->tagName, "InternalTextNode")) {
-        for (i = 0; i < renderer->indent; i++)
-            "  ";
-        "<%s> class: '%s', textAlign: %s, width: %d, height: %d, bg: #0x%06x, color: #0x%06x, fontFamily: '%s', fontSize: %d, fontWeight: %d, display: %s\n", node->tagName, T(node->attributes->@("class"), node->attributes->@("class"), ""),
-            text_align_values->@(node->textAlign), node->width, node->height, node->backgroundColor, node->color, node->fontFamily, node->fontSize, node->fontWeight, display_values->@(node->display);
-    }
 
     // Insert a block widget for the element's opening tag
     if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
@@ -1277,6 +1303,12 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (!StrICmp(node->tagName, "InternalTextNode")) {
         node->text = @sanitize_node_text(renderer, node->text);
         if (!parent_nodes_excluded_from_text_rendering->contains(node->parentNode->tagName)) {
+            if (renderer->debug) {
+                @dump_node_indent(renderer);
+                dump_text = StrNew(node->text);
+                String.Trim(dump_text);
+                "text: \"%s\"\n", dump_text;
+            }
             @render_node_text(node, renderer);
         }
         if (!StrICmp(node->parentNode->tagName, "title")) {
