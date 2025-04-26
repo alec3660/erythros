@@ -757,6 +757,10 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
     Bool matched = FALSE;
     Bool should_display = TRUE;
 
+    // Set initial values for node width/height to undefined
+    node->width = -1;
+    node->height = -1;
+
     if (block_level_element_tag_names->contains(node->tagName)) {
         node->display = CSS_DISPLAY_BLOCK;
     }
@@ -937,9 +941,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     CheckBoxWidget* cb = NULL;
 
     if (!StrICmp(type, "checkbox")) {
-        if (!node->width)
+        if (node->width < 0)
             width = 14;
-        if (!node->height)
+        if (node->height < 0)
             height = 14;
         cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         cb->checked = node->attributes->@("checked");
@@ -949,9 +953,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "button")) {
-        if (!node->width)
+        if (node->width < 0)
             width = 64;
-        if (!node->height)
+        if (node->height < 0)
             height = 16;
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
@@ -961,9 +965,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "submit")) {
-        if (!node->width)
+        if (node->width < 0)
             width = 64;
-        if (!node->height)
+        if (node->height < 0)
             height = 16;
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
@@ -974,9 +978,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!type || !StrICmp(type, "text")) {
-        if (!node->width)
+        if (node->width < 0)
             width = 64;
-        if (!node->height)
+        if (node->height < 0)
             height = 16;
         if (node->attributes->@("width")) {
             width = 8 * Str2I64(node->attributes->@("width"));
@@ -998,9 +1002,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "password")) {
-        if (!node->width)
+        if (node->width < 0)
             width = 64;
-        if (!node->height)
+        if (node->height < 0)
             height = 16;
         if (node->attributes->@("width")) {
             width = 8 * Str2I64(node->attributes->@("width"));
@@ -1316,7 +1320,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(node->tagName, "img")) {
-        if (!node->width || !node->height) {
+        if (node->width < 0 || node->height < 0) {
             node->width = 32;
             node->height = 32;
         }
