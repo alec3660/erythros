@@ -1186,7 +1186,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                     if (underline_y_pos < 0)
                         underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 3;
                     if (!(underline_y_pos < 0)) {
-                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width, underline_y_pos, node->parentNode->underlineColor);
+                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width, underline_y_pos, node->parentNode->color);
                     }
                 }
 
