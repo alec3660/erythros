@@ -90,8 +90,10 @@ class @html_dom_node : JsonElement
     JsonArray* children;
     U8* text;
     I64 textAlign;
-    I64 width;
-    I64 height;
+    F64 width;
+    F64 height;
+    I64 widthDistanceType;
+    I64 heightDistanceType;
     U32 backgroundColor;
     U32 underlineColor;
     U32 linethroughColor;
