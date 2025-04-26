@@ -1279,14 +1279,6 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         block_widget->data = node;
     }
 
-    if (!StrICmp(node->tagName, "b") || !StrICmp(node->tagName, "strong")) {
-        node->fontWeight = 700;
-    }
-
-    if (!StrICmp(node->tagName, "i") || !StrICmp(node->tagName, "em")) {
-        node->italic = TRUE;
-    }
-
     if (!StrICmp(node->tagName, "strike")) {
         node->linethroughColor = node->color;
     }
