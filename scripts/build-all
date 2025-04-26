@@ -52,6 +52,7 @@ templeos_iso_file = build_options['templeos_iso_file'] if 'templeos_iso_file' in
 qemu_args = build_options['qemu_args'] if 'qemu_args' in build_options else [
     '-display sdl,grab-mod=rctrl',
     '-enable-kvm',
+    '-machine vmport=on',
     '-smp cores=6',
     '-m 8192',
     '-netdev tap,id=mynet0,ifname=tap0,script=no,downscript=no',
@@ -59,7 +60,6 @@ qemu_args = build_options['qemu_args'] if 'qemu_args' in build_options else [
     '-device virtio-net,netdev=mynet0',
     '-drive file=' + qemu_virtio_disk_path + ',format=qcow2,if=none,index=0,media=disk,id=virtio-disk',
     '-device virtio-blk-pci,drive=virtio-disk',
-    '-device vmmouse,i8042=i8042',
     '-device vmware-svga',
     '-cdrom ' + qemu_slipstream_iso_file,
     '-debugcon stdio',
