@@ -398,16 +398,48 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
             @css_resolve_color(&node->color, values->@(0));
         }
 
-        if (!StrICmp(key->name, "width") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+        if (!StrICmp(key->name, "width")) {
             StrCpy(node_tmpnum_buf, values->@(0));
-            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-            node->width = Str2I64(node_tmpnum_buf);
+            if (String.EndsWith("px", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->width = Str2F64(node_tmpnum_buf);
+                node->widthDistanceType = CSS_DISTANCE_PIXELS;
+            }
+            if (String.EndsWith("em", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->width = Str2F64(node_tmpnum_buf);
+                node->widthDistanceType = CSS_DISTANCE_EM;
+            }
+            if (String.EndsWith("%", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 1] = NULL;
+                node->width = Str2F64(node_tmpnum_buf);
+                node->widthDistanceType = CSS_DISTANCE_PERCENT;
+            }
+            if (!StrICmp(values->@(0), "auto")) {
+                node->widthDistanceType = CSS_DISTANCE_AUTO;
+            }
         }
 
-        if (!StrICmp(key->name, "height") && !StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
+        if (!StrICmp(key->name, "height")) {
             StrCpy(node_tmpnum_buf, values->@(0));
-            node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-            node->height = Str2I64(node_tmpnum_buf);
+            if (String.EndsWith("px", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->height = Str2F64(node_tmpnum_buf);
+                node->heightDistanceType = CSS_DISTANCE_PIXELS;
+            }
+            if (String.EndsWith("em", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                node->height = Str2F64(node_tmpnum_buf);
+                node->heightDistanceType = CSS_DISTANCE_EM;
+            }
+            if (String.EndsWith("%", values->@(0))) {
+                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 1] = NULL;
+                node->height = Str2F64(node_tmpnum_buf);
+                node->heightDistanceType = CSS_DISTANCE_PERCENT;
+            }
+            if (!StrICmp(values->@(0), "auto")) {
+                node->heightDistanceType = CSS_DISTANCE_AUTO;
+            }
         }
 
         if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "left"))
@@ -731,13 +763,56 @@ JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-
 
 U0 @dump_node_info(@html_dom_node* node, HtmlRenderer* renderer, U8* comment = NULL)
 {
+    U8 width_buffer[128];
+    U8 height_buffer[128];
     if (comment) {
         @dump_node_indent(renderer);
         "%s\n", comment;
     }
     @dump_node_indent(renderer);
-    "<%s> CSS: textAlign: %s, width: %dpx, height: %dpx, bgcolor: #0x%06x, color: #0x%06x, fontFamily: \"%s\", fontSize: %dpx, fontWeight: %d, display: %s\n",
-        node->tagName, text_align_values->@(node->textAlign), node->width, node->height, node->backgroundColor, node->color,
+    switch (node->widthDistanceType) {
+    case CSS_DISTANCE_UNDEFINED:
+        StrCpy(width_buffer, "(undefined)");
+        break;
+    case CSS_DISTANCE_PIXELS:
+        StrPrint(width_buffer, "%dpx", ToI64(node->width));
+        break;
+    case CSS_DISTANCE_EM:
+        StrPrint(width_buffer, "%fem", node->width);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        StrPrint(width_buffer, "%f\xef\xbc\x85", node->width);
+        break;
+    case CSS_DISTANCE_AUTO:
+        StrCpy(width_buffer, "auto");
+        break;
+    default:
+        StrCpy(width_buffer, "(invalid)");
+        break;
+    }
+    switch (node->heightDistanceType) {
+    case CSS_DISTANCE_UNDEFINED:
+        StrCpy(height_buffer, "(undefined)");
+        break;
+    case CSS_DISTANCE_PIXELS:
+        StrPrint(height_buffer, "%dpx", ToI64(node->height));
+        break;
+    case CSS_DISTANCE_EM:
+        StrPrint(height_buffer, "%fem", node->height);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        StrPrint(height_buffer, "%f\xef\xbc\x85", node->height);
+        break;
+    case CSS_DISTANCE_AUTO:
+        StrCpy(height_buffer, "auto");
+        break;
+    default:
+        StrCpy(height_buffer, "(invalid)");
+        break;
+    }
+
+    "<%s> CSS: textAlign: %s, width: %s, height: %s, bgcolor: #0x%06x, color: #0x%06x, fontFamily: \"%s\", fontSize: %dpx, fontWeight: %d, display: %s\n",
+        node->tagName, text_align_values->@(node->textAlign), width_buffer, height_buffer, node->backgroundColor, node->color,
         node->fontFamily, node->fontSize, node->fontWeight, display_values->@(node->display);
     @dump_node_indent(renderer);
     "%s\n", Json.Stringify(node->attributes, erythros_mem_task);
@@ -756,10 +831,6 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
     U8* selector = NULL;
     Bool matched = FALSE;
     Bool should_display = TRUE;
-
-    // Set initial values for node width/height to undefined
-    node->width = -1;
-    node->height = -1;
 
     if (block_level_element_tag_names->contains(node->tagName)) {
         node->display = CSS_DISPLAY_BLOCK;
@@ -941,9 +1012,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     CheckBoxWidget* cb = NULL;
 
     if (!StrICmp(type, "checkbox")) {
-        if (node->width < 0)
+        if (!node->widthDistanceType)
             width = 14;
-        if (node->height < 0)
+        if (!node->heightDistanceType)
             height = 14;
         cb = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CHECKBOX, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         cb->checked = node->attributes->@("checked");
@@ -953,9 +1024,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "button")) {
-        if (node->width < 0)
+        if (!node->widthDistanceType)
             width = 64;
-        if (node->height < 0)
+        if (!node->heightDistanceType)
             height = 16;
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
@@ -965,9 +1036,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "submit")) {
-        if (node->width < 0)
+        if (!node->widthDistanceType)
             width = 64;
-        if (node->height < 0)
+        if (!node->heightDistanceType)
             height = 16;
         btn = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BUTTON, U64_MAX, U64_MAX, width, height); // FIXME: Derive width/height
         btn->data = node;
@@ -978,9 +1049,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!type || !StrICmp(type, "text")) {
-        if (node->width < 0)
+        if (!node->widthDistanceType)
             width = 64;
-        if (node->height < 0)
+        if (!node->heightDistanceType)
             height = 16;
         if (node->attributes->@("width")) {
             width = 8 * Str2I64(node->attributes->@("width"));
@@ -1002,9 +1073,9 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(type, "password")) {
-        if (node->width < 0)
+        if (!node->widthDistanceType)
             width = 64;
-        if (node->height < 0)
+        if (!node->heightDistanceType)
             height = 16;
         if (node->attributes->@("width")) {
             width = 8 * Str2I64(node->attributes->@("width"));
@@ -1274,7 +1345,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
-        if (node->width > 0 && node->height > 0) {
+        if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
             block_widget->ctx = NewContext2D(node->width, node->height)->fill(node->backgroundColor);
             block_widget->width = block_widget->ctx->width;
             block_widget->height = block_widget->ctx->height;
@@ -1320,7 +1391,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     }
 
     if (!StrICmp(node->tagName, "img")) {
-        if (node->width < 0 || node->height < 0) {
+        if (!node->widthDistanceType || !node->heightDistanceType) {
             node->width = 32;
             node->height = 32;
         }
