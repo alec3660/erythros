@@ -724,6 +724,8 @@ U0 @dump_node_indent(HtmlRenderer* renderer)
         "  ";
 }
 
+JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
+JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
 JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
 JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
 
@@ -754,6 +756,10 @@ Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
     U8* selector = NULL;
     Bool matched = FALSE;
     Bool should_display = TRUE;
+
+    if (block_level_element_tag_names->contains(node->tagName)) {
+        node->display = CSS_DISPLAY_BLOCK;
+    }
 
     @inherit_css_values_from_parent_node(node);
     if (renderer->debug)
@@ -1017,9 +1023,6 @@ U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
     }
 }
 
-JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
-JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
-
 #define ADD_BYTE_TO_CODE_POINT_VALUE code_point = ((code_point << 6) | text[++i] & 0x3f);
 #define ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
 #define ADD_THREE_BYTES_TO_CODE_POINT_VALUE ADD_TWO_BYTES_TO_CODE_POINT_VALUE ADD_BYTE_TO_CODE_POINT_VALUE
@@ -1248,6 +1251,8 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     if (!node || !renderer)
         return;
 
+    ++renderer->indent;
+
     I64 i;
     U8 buf[HTML_WORK_BUFFER_SIZE];
     U8* dump_text;
@@ -1255,15 +1260,9 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     Context2DWidget* block_widget;
     Context2DWidget* img_widget;
 
-    if (block_level_element_tag_names->contains(node->tagName)) {
-        node->display = CSS_DISPLAY_BLOCK;
-    }
-
     if (StrICmp(node->tagName, "InternalTextNode"))
         if (!@apply_css_rules_to_node(node, renderer))
             return;
-
-    ++renderer->indent;
 
     @apply_attribute_values_to_node(node);
 
