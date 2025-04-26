@@ -11,8 +11,16 @@ a {
     text-decoration: underline
 }
 
+b, strong {
+    font-weight: bold
+}
+
 code {
     font-family: monospace
+}
+
+em, i {
+    font-style: italic
 }
 
 h1 {
