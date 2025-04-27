@@ -1143,12 +1143,20 @@ U0 @json_callable_object_unset_wrapper_function(U8* key)
 {
     @json_callable_object* cobj = CAlloc(sizeof(@json_callable_object), obj->mem_task);
     MemCpy(cobj, obj, sizeof(@json_object));
+    Free(obj);
+
+    U64 a;
+    I64 buffer_size = (MSize(&@json_callable_object_get_wrapper_function) + MSize(&@json_callable_object_set_wrapper_function) + MSize(&@json_callable_object_unset_wrapper_function));
+    buffer_size += buffer_size % 16;
+
+    U64 code_ptr = CAlloc(buffer_size, cobj->mem_task->code_heap);
+    I64 code_size = 0;
 
     // Create a copy of function and patch Get
-    U64 a;
-    I64 code_size = MSize(&@json_callable_object_get_wrapper_function);
-    cobj->@ = CAlloc(code_size, obj->mem_task->code_heap);
+    code_size = MSize(&@json_callable_object_get_wrapper_function);
+    cobj->@ = code_ptr;
     MemCpy(cobj->@, &@json_callable_object_get_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = cobj->@;
     a += 0x13;
@@ -1160,8 +1168,9 @@ U0 @json_callable_object_unset_wrapper_function(U8* key)
 
     // Create a copy of function and patch Set
     code_size = MSize(&@json_callable_object_set_wrapper_function);
-    cobj->set = CAlloc(code_size, obj->mem_task->code_heap);
+    cobj->set = code_ptr;
     MemCpy(cobj->set, &@json_callable_object_set_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = cobj->set;
     a += 0x1a;
@@ -1173,8 +1182,9 @@ U0 @json_callable_object_unset_wrapper_function(U8* key)
 
     // Create a copy of function and patch Unset
     code_size = MSize(&@json_callable_object_unset_wrapper_function);
-    cobj->unset = CAlloc(code_size, obj->mem_task->code_heap);
+    cobj->unset = code_ptr;
     MemCpy(cobj->unset, &@json_callable_object_unset_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = cobj->unset;
     a += 0x0c;
@@ -1346,12 +1356,20 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
     // Alloc callable object and copy instance
     @json_callable_array* carr = CAlloc(sizeof(@json_callable_array), arr->mem_task);
     MemCpy(carr, arr, sizeof(@json_array));
+    Free(arr);
+
+    U64 a;
+    I64 buffer_size = (MSize(&@json_callable_array_index_wrapper_function) + MSize(&@json_callable_array_append_wrapper_function) + MSize(&@json_callable_array_contains_wrapper_function) + MSize(&@json_callable_array_prepend_wrapper_function) + MSize(&@json_callable_array_insert_wrapper_function) + MSize(&@json_callable_array_remove_wrapper_function));
+    buffer_size += buffer_size % 16;
+
+    U64 code_ptr = CAlloc(buffer_size, carr->mem_task->code_heap);
+    I64 code_size = 0;
 
     // Create a copy of function and patch Index
-    U64 a;
-    I64 code_size = MSize(&@json_callable_array_index_wrapper_function);
-    carr->@ = CAlloc(code_size, arr->mem_task->code_heap);
+    code_size = MSize(&@json_callable_array_index_wrapper_function);
+    carr->@ = code_ptr;
     MemCpy(carr->@, &@json_callable_array_index_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->@;
     a += 0x13;
@@ -1366,8 +1384,9 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
 
     // Create a copy of function and patch Append
     code_size = MSize(&@json_callable_array_append_wrapper_function);
-    carr->append = CAlloc(code_size, arr->mem_task->code_heap);
+    carr->append = code_ptr;
     MemCpy(carr->append, &@json_callable_array_append_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->append;
     a += 0x12;
@@ -1379,8 +1398,9 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
 
     // Create a copy of function and patch Contains
     code_size = MSize(&@json_callable_array_contains_wrapper_function);
-    carr->contains = CAlloc(code_size, arr->mem_task->code_heap);
+    carr->contains = code_ptr;
     MemCpy(carr->contains, &@json_callable_array_contains_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->contains;
     a += 0x1b;
@@ -1392,8 +1412,9 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
 
     // Create a copy of function and patch Prepend
     code_size = MSize(&@json_callable_array_prepend_wrapper_function);
-    carr->prepend = CAlloc(code_size, arr->mem_task->code_heap);
+    carr->prepend = code_ptr;
     MemCpy(carr->prepend, &@json_callable_array_prepend_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->prepend;
     a += 0x12;
@@ -1405,8 +1426,9 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
 
     // Create a copy of function and patch Insert
     code_size = MSize(&@json_callable_array_insert_wrapper_function);
-    carr->insert = CAlloc(code_size, arr->mem_task->code_heap);
+    carr->insert = code_ptr;
     MemCpy(carr->insert, &@json_callable_array_insert_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->insert;
     a += 0x1a;
@@ -1418,8 +1440,9 @@ U0 @json_callable_array_remove_wrapper_function(I64 index)
 
     // Create a copy of function and patch Remove
     code_size = MSize(&@json_callable_array_remove_wrapper_function);
-    carr->remove = CAlloc(code_size, arr->mem_task->code_heap);
+    carr->remove = code_ptr;
     MemCpy(carr->remove, &@json_callable_array_remove_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = carr->remove;
     a += 0x0c;
