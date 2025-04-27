@@ -353,6 +353,41 @@ U0 @css_resolve_color(U32* dst, U8* str)
     }
 }
 
+U0 @set_css_distance(U8* str, F64* value, I64* type)
+{
+    if (!str || !value || !type)
+        return;
+    if (!StrICmp(str, "0")) {
+        *value = 0;
+        *type = CSS_DISTANCE_UNDEFINED;
+        return;
+    }
+    if (!StrICmp(str, "auto")) {
+        *type = CSS_DISTANCE_AUTO;
+        return;
+    }
+    U8 buf[16];
+    StrCpy(buf, str);
+    if (String.EndsWith("px", buf)) {
+        buf[StrLen(buf) - 2] = NULL;
+        *value = Str2F64(buf);
+        *type = CSS_DISTANCE_PIXELS;
+        return;
+    }
+    if (String.EndsWith("em", buf)) {
+        buf[StrLen(buf) - 2] = NULL;
+        *value = Str2F64(buf);
+        *type = CSS_DISTANCE_EM;
+        return;
+    }
+    if (String.EndsWith("%", buf)) {
+        buf[StrLen(buf) - 1] = NULL;
+        *value = Str2F64(buf);
+        *type = CSS_DISTANCE_PERCENT;
+        return;
+    }
+}
+
 Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
 {
     Bool should_display = TRUE;
@@ -398,48 +433,96 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
             @css_resolve_color(&node->color, values->@(0));
         }
 
-        if (!StrICmp(key->name, "width")) {
-            StrCpy(node_tmpnum_buf, values->@(0));
-            if (String.EndsWith("px", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->width = Str2F64(node_tmpnum_buf);
-                node->widthDistanceType = CSS_DISTANCE_PIXELS;
-            }
-            if (String.EndsWith("em", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->width = Str2F64(node_tmpnum_buf);
-                node->widthDistanceType = CSS_DISTANCE_EM;
-            }
-            if (String.EndsWith("%", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 1] = NULL;
-                node->width = Str2F64(node_tmpnum_buf);
-                node->widthDistanceType = CSS_DISTANCE_PERCENT;
-            }
-            if (!StrICmp(values->@(0), "auto")) {
-                node->widthDistanceType = CSS_DISTANCE_AUTO;
+        if (!StrICmp(key->name, "margin")) {
+            switch (values->length) {
+            case 2:
+                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+                @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
+                @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
+                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+                break;
+            case 3:
+                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+                @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
+                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+                @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
+                break;
+            case 4:
+                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+                @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
+                @set_css_distance(values->@(3), &node->margin.left.value, &node->margin.left.type);
+                break;
+            default:
+                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+                @set_css_distance(values->@(0), &node->margin.right.value, &node->margin.right.type);
+                @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
+                @set_css_distance(values->@(0), &node->margin.left.value, &node->margin.left.type);
+                break;
             }
         }
 
+        if (!StrICmp(key->name, "margin-top")) {
+            @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+        }
+        if (!StrICmp(key->name, "margin-right")) {
+            @set_css_distance(values->@(0), &node->margin.right.value, &node->margin.right.type);
+        }
+        if (!StrICmp(key->name, "margin-bottom")) {
+            @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
+        }
+        if (!StrICmp(key->name, "margin-left")) {
+            @set_css_distance(values->@(0), &node->margin.left.value, &node->margin.left.type);
+        }
+
+        if (!StrICmp(key->name, "padding")) {
+            switch (values->length) {
+            case 2:
+                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+                @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
+                @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
+                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+                break;
+            case 3:
+                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+                @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
+                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+                @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
+                break;
+            case 4:
+                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+                @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
+                @set_css_distance(values->@(3), &node->padding.left.value, &node->padding.left.type);
+                break;
+            default:
+                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+                @set_css_distance(values->@(0), &node->padding.right.value, &node->padding.right.type);
+                @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
+                @set_css_distance(values->@(0), &node->padding.left.value, &node->padding.left.type);
+                break;
+            }
+        }
+
+        if (!StrICmp(key->name, "padding-top")) {
+            @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+        }
+        if (!StrICmp(key->name, "padding-right")) {
+            @set_css_distance(values->@(0), &node->padding.right.value, &node->padding.right.type);
+        }
+        if (!StrICmp(key->name, "padding-bottom")) {
+            @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
+        }
+        if (!StrICmp(key->name, "padding-left")) {
+            @set_css_distance(values->@(0), &node->padding.left.value, &node->padding.left.type);
+        }
+
+        if (!StrICmp(key->name, "width")) {
+            @set_css_distance(values->@(0), &node->width, &node->widthDistanceType);
+        }
+
         if (!StrICmp(key->name, "height")) {
-            StrCpy(node_tmpnum_buf, values->@(0));
-            if (String.EndsWith("px", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->height = Str2F64(node_tmpnum_buf);
-                node->heightDistanceType = CSS_DISTANCE_PIXELS;
-            }
-            if (String.EndsWith("em", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->height = Str2F64(node_tmpnum_buf);
-                node->heightDistanceType = CSS_DISTANCE_EM;
-            }
-            if (String.EndsWith("%", values->@(0))) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 1] = NULL;
-                node->height = Str2F64(node_tmpnum_buf);
-                node->heightDistanceType = CSS_DISTANCE_PERCENT;
-            }
-            if (!StrICmp(values->@(0), "auto")) {
-                node->heightDistanceType = CSS_DISTANCE_AUTO;
-            }
+            @set_css_distance(values->@(0), &node->height, &node->heightDistanceType);
         }
 
         if (!StrICmp(key->name, "text-align") && !StrICmp(values->@(0), "left"))
@@ -761,61 +844,74 @@ JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\
 JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
 JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
 
+U0 @dump_distance_string(U8* out, F64 value, I64 type)
+{
+    switch (type) {
+    case CSS_DISTANCE_UNDEFINED:
+        StrCpy(out, "(undefined)");
+        break;
+    case CSS_DISTANCE_PIXELS:
+        StrPrint(out, "%dpx", ToI64(value));
+        break;
+    case CSS_DISTANCE_EM:
+        StrPrint(out, "%fem", value);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        StrPrint(out, "%f\xef\xbc\x85", value);
+        break;
+    case CSS_DISTANCE_AUTO:
+        StrCpy(out, "auto");
+        break;
+    default:
+        StrCpy(out, "(invalid)");
+        break;
+    }
+}
+
 U0 @dump_node_info(@html_dom_node* node, HtmlRenderer* renderer, U8* comment = NULL)
 {
-    U8 width_buffer[128];
-    U8 height_buffer[128];
+    U8 buf[128];
+
     if (comment) {
         @dump_node_indent(renderer);
         "%s\n", comment;
     }
-    @dump_node_indent(renderer);
-    switch (node->widthDistanceType) {
-    case CSS_DISTANCE_UNDEFINED:
-        StrCpy(width_buffer, "(undefined)");
-        break;
-    case CSS_DISTANCE_PIXELS:
-        StrPrint(width_buffer, "%dpx", ToI64(node->width));
-        break;
-    case CSS_DISTANCE_EM:
-        StrPrint(width_buffer, "%fem", node->width);
-        break;
-    case CSS_DISTANCE_PERCENT:
-        StrPrint(width_buffer, "%f\xef\xbc\x85", node->width);
-        break;
-    case CSS_DISTANCE_AUTO:
-        StrCpy(width_buffer, "auto");
-        break;
-    default:
-        StrCpy(width_buffer, "(invalid)");
-        break;
-    }
-    switch (node->heightDistanceType) {
-    case CSS_DISTANCE_UNDEFINED:
-        StrCpy(height_buffer, "(undefined)");
-        break;
-    case CSS_DISTANCE_PIXELS:
-        StrPrint(height_buffer, "%dpx", ToI64(node->height));
-        break;
-    case CSS_DISTANCE_EM:
-        StrPrint(height_buffer, "%fem", node->height);
-        break;
-    case CSS_DISTANCE_PERCENT:
-        StrPrint(height_buffer, "%f\xef\xbc\x85", node->height);
-        break;
-    case CSS_DISTANCE_AUTO:
-        StrCpy(height_buffer, "auto");
-        break;
-    default:
-        StrCpy(height_buffer, "(invalid)");
-        break;
-    }
 
-    "<%s> CSS: textAlign: %s, width: %s, height: %s, bgcolor: #0x%06x, color: #0x%06x, fontFamily: \"%s\", fontSize: %dpx, fontWeight: %d, display: %s\n",
-        node->tagName, text_align_values->@(node->textAlign), width_buffer, height_buffer, node->backgroundColor, node->color,
-        node->fontFamily, node->fontSize, node->fontWeight, display_values->@(node->display);
     @dump_node_indent(renderer);
-    "%s\n", Json.Stringify(node->attributes, erythros_mem_task);
+    "<%s> display: %s, textAlign: %s, ",
+        node->tagName, display_values->@(node->display), text_align_values->@(node->textAlign);
+    @dump_distance_string(&buf, node->width, node->widthDistanceType);
+    "width: %s, ", buf;
+    @dump_distance_string(&buf, node->height, node->heightDistanceType);
+    "height: %s, ", buf;
+    "\n";
+
+    @dump_node_indent(renderer);
+    @dump_distance_string(&buf, node->margin.top.value, node->margin.top.type);
+    "margin  - top: %s, ", buf;
+    @dump_distance_string(&buf, node->margin.right.value, node->margin.right.type);
+    "right: %s, ", buf;
+    @dump_distance_string(&buf, node->margin.bottom.value, node->margin.bottom.type);
+    "bottom: %s, ", buf;
+    @dump_distance_string(&buf, node->margin.left.value, node->margin.left.type);
+    "left: %s\n", buf;
+
+    @dump_node_indent(renderer);
+    @dump_distance_string(&buf, node->padding.top.value, node->padding.top.type);
+    "padding - top: %s, ", buf;
+    @dump_distance_string(&buf, node->padding.right.value, node->padding.right.type);
+    "right: %s, ", buf;
+    @dump_distance_string(&buf, node->padding.bottom.value, node->padding.bottom.type);
+    "bottom: %s, ", buf;
+    @dump_distance_string(&buf, node->padding.left.value, node->padding.left.type);
+    "left: %s\n", buf;
+
+    @dump_node_indent(renderer);
+    "bgcolor: #%08x, color: #%08x, fontFamily: \"%s\", fontSize: %dpx, fontWeight: %d\n", node->backgroundColor, node->color,
+        node->fontFamily, node->fontSize, node->fontWeight;
+
+    @dump_node_indent(renderer);
+    "attributes: %s\n", Json.Stringify(node->attributes, erythros_mem_task);
 }
 
 Bool @apply_css_rules_to_node(@html_dom_node* node, HtmlRenderer* renderer)
