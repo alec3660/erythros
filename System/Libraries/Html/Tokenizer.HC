@@ -88,21 +88,30 @@ class @html_dom_node : JsonElement
     U8 tagName[32];
     JsonObject* attributes;
     JsonArray* children;
+
     U8* text;
+
+    I64 display;
     I64 textAlign;
+
     F64 width;
     F64 height;
     I64 widthDistanceType;
     I64 heightDistanceType;
-    U32 backgroundColor;
-    U32 underlineColor;
-    U32 linethroughColor;
+
+    @css_area margin;
+    @css_area border;
+    @css_area padding;
+
     U32 color;
+    U32 backgroundColor;
+    U32 linethroughColor;
+    U32 underlineColor;
+
     U8* fontFamily;
     I64 fontSize;
     I64 fontWeight;
     Bool italic;
-    I64 display;
 };
 
 class @html_input_buffer
