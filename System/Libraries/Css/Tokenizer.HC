@@ -37,6 +37,27 @@ class @css_area
     @css_side right;
 };
 
+class @css_radius
+{
+    @css_side topLeft;
+    @css_side topRight;
+    @css_side bottomLeft;
+    @css_side bottomRight;
+}
+
+class @css_border : @css_area
+{
+    U32 topColor;
+    U32 bottomColor;
+    U32 leftColor;
+    U32 rightColor;
+    I64 topStyle;
+    I64 bottomStyle;
+    I64 leftStyle;
+    I64 rightStyle;
+    @css_radius radius;
+};
+
 class @css_tokenizer
 {
     U8* buffer;
