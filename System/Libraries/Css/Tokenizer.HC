@@ -23,6 +23,20 @@ U8* @css_named_colors_buffer = FileRead("M:/System/Libraries/Css/NamedColors.jso
 JsonObject* @css_named_colors = Json.Parse(@css_named_colors_buffer, erythros_mem_task);
 Free(@css_named_colors_buffer);
 
+class @css_side
+{
+    F64 value;
+    I64 type; // CSS_DISTANCE_
+};
+
+class @css_area
+{
+    @css_side top;
+    @css_side bottom;
+    @css_side left;
+    @css_side right;
+};
+
 class @css_tokenizer
 {
     U8* buffer;
