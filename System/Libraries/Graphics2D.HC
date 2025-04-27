@@ -682,18 +682,10 @@ U0 DelContext2D(Context2D* ctx)
     if (!ctx) {
         return;
     }
-    Free(ctx->fb);
-    Free(ctx->scaled);
-    Free(ctx->rotated);
-    Free(ctx->clipped);
-    Free(ctx->line);
-    Free(ctx->plot);
-    Free(ctx->peek);
-    Free(ctx->fill_rect);
-    Free(ctx->fill);
-    Free(ctx->copy_rect);
-    Free(ctx->blur);
-    Free(ctx->blot);
+    if (ctx->fb)
+        Free(ctx->fb);
+    if (ctx->blot)
+        Free(ctx->blot);
     Free(ctx);
 }
 
@@ -1670,12 +1662,18 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
     Free(ctx);
 
     U64 a;
-    I64 code_size;
+
+    I64 buffer_size = (MSize(&@c2d_blot_wrapper_function) + MSize(&@c2d_blur_wrapper_function) + MSize(&@c2d_copy_rect_wrapper_function) + MSize(&@c2d_fill_wrapper_function) + MSize(&@c2d_fill_rect_wrapper_function) + MSize(&@c2d_peek_wrapper_function) + MSize(&@c2d_plot_wrapper_function) + MSize(&@c2d_line_wrapper_function) + MSize(&@c2d_text_wrapper_function) + MSize(&@c2d_clipped_wrapper_function) + MSize(&@c2d_rotated_wrapper_function) + MSize(&@c2d_scaled_wrapper_function));
+    buffer_size += buffer_size % 16;
+
+    U64 code_ptr = CAlloc(buffer_size, adam_task->code_heap);
+    I64 code_size = 0;
 
     // blot
     code_size = MSize(&@c2d_blot_wrapper_function);
-    res->blot = CAlloc(code_size, adam_task->code_heap);
+    res->blot = code_ptr;
     MemCpy(res->blot, &@c2d_blot_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->blot;
     a += 0x1c;
@@ -1687,8 +1685,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // blur
     code_size = MSize(&@c2d_blur_wrapper_function);
-    res->blur = CAlloc(code_size, adam_task->code_heap);
+    res->blur = code_ptr;
     MemCpy(res->blur, &@c2d_blur_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->blur;
     a += 0x10;
@@ -1700,8 +1699,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // copy_rect
     code_size = MSize(&@c2d_copy_rect_wrapper_function);
-    res->copy_rect = CAlloc(code_size, adam_task->code_heap);
+    res->copy_rect = code_ptr;
     MemCpy(res->copy_rect, &@c2d_copy_rect_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->copy_rect;
     a += 0x1c;
@@ -1713,8 +1713,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // fill
     code_size = MSize(&@c2d_fill_wrapper_function);
-    res->fill = CAlloc(code_size, adam_task->code_heap);
+    res->fill = code_ptr;
     MemCpy(res->fill, &@c2d_fill_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->fill;
     a += 0x0f;
@@ -1726,8 +1727,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // fill_rect
     code_size = MSize(&@c2d_fill_rect_wrapper_function);
-    res->fill_rect = CAlloc(code_size, adam_task->code_heap);
+    res->fill_rect = code_ptr;
     MemCpy(res->fill_rect, &@c2d_fill_rect_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->fill_rect;
     a += 0x28;
@@ -1739,8 +1741,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // peek
     code_size = MSize(&@c2d_peek_wrapper_function);
-    res->peek = CAlloc(code_size, adam_task->code_heap);
+    res->peek = code_ptr;
     MemCpy(res->peek, &@c2d_peek_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->peek;
     a += 0x16;
@@ -1752,8 +1755,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // plot
     code_size = MSize(&@c2d_plot_wrapper_function);
-    res->plot = CAlloc(code_size, adam_task->code_heap);
+    res->plot = code_ptr;
     MemCpy(res->plot, &@c2d_plot_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->plot;
     a += 0x1b;
@@ -1765,8 +1769,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // line
     code_size = MSize(&@c2d_line_wrapper_function);
-    res->line = CAlloc(code_size, adam_task->code_heap);
+    res->line = code_ptr;
     MemCpy(res->line, &@c2d_line_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->line;
     a += 0x28;
@@ -1778,8 +1783,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // text
     code_size = MSize(&@c2d_text_wrapper_function);
-    res->text = CAlloc(code_size, adam_task->code_heap);
+    res->text = code_ptr;
     MemCpy(res->text, &@c2d_text_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->text;
     a += 0x2e;
@@ -1791,8 +1797,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // clipped
     code_size = MSize(&@c2d_clipped_wrapper_function);
-    res->clipped = CAlloc(code_size, adam_task->code_heap);
+    res->clipped = code_ptr;
     MemCpy(res->clipped, &@c2d_clipped_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->clipped;
     a += 0x0b;
@@ -1804,8 +1811,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // rotated
     code_size = MSize(&@c2d_rotated_wrapper_function);
-    res->rotated = CAlloc(code_size, adam_task->code_heap);
+    res->rotated = code_ptr;
     MemCpy(res->rotated, &@c2d_rotated_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->rotated;
     a += 0x0b;
@@ -1817,8 +1825,9 @@ U32 @c2d_peek_wrapper_function(I64 x, I64 y)
 
     // scaled
     code_size = MSize(&@c2d_scaled_wrapper_function);
-    res->scaled = CAlloc(code_size, adam_task->code_heap);
+    res->scaled = code_ptr;
     MemCpy(res->scaled, &@c2d_scaled_wrapper_function, code_size);
+    code_ptr += code_size;
 
     a = res->scaled;
     a += 0x0b;
