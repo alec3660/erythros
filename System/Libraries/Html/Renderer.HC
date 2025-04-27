@@ -904,7 +904,7 @@ pt_to_cstring_done:
     return str;
 }
 
-U0 @create_form_from_node(HtmlRenderer* renderer, @html_dom_node* node)
+U0 @create_form_from_node(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !node->attributes || !renderer)
         return;
@@ -1321,84 +1321,16 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
 }
 
-U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
+U0 @handle_tag_specific_functions(@html_dom_node* node, HtmlRenderer* renderer)
 {
-    if (!node || !renderer)
-        return;
-
-    ++renderer->indent;
-
-    I64 i;
-    U8 buf[HTML_WORK_BUFFER_SIZE];
-    U8* dump_text;
-
-    Context2DWidget* block_widget;
-    Context2DWidget* img_widget;
-
-    if (StrICmp(node->tagName, "InternalTextNode"))
-        if (!@apply_css_rules_to_node(node, renderer))
-            return;
-
-    @apply_attribute_values_to_node(node);
-
-    // Insert a block widget for the element's opening tag
-    if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
-        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
-            U64_MAX, U64_MAX, 0, 0);
-        if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
-            block_widget->ctx = NewContext2D(node->width, node->height)->fill(node->backgroundColor);
-            block_widget->width = block_widget->ctx->width;
-            block_widget->height = block_widget->ctx->height;
-            block_widget->fast_copy = TRUE;
-        }
-        block_widget->data = node;
-    }
-
-    if (!StrICmp(node->tagName, "strike")) {
-        node->linethroughColor = node->color;
-    }
-
     if (!StrICmp(node->tagName, "body")) {
         renderer->background_ctx->width = Display.Width();
         renderer->background_ctx->height = Display.Height();
         renderer->background_ctx->fill(node->backgroundColor);
     }
 
-    if (!StrICmp(node->tagName, "form"))
-        @create_form_from_node(renderer, node);
-
-    if (!StrICmp(node->tagName, "input"))
-        @render_form_element(node, renderer);
-
-    if (!StrICmp(node->tagName, "InternalTextNode")) {
-        node->text = @sanitize_node_text(renderer, node->text);
-        if (!parent_nodes_excluded_from_text_rendering->contains(node->parentNode->tagName)) {
-            if (renderer->debug) {
-                @dump_node_indent(renderer);
-                dump_text = StrNew(node->text);
-                String.Trim(dump_text);
-                "text: \"%s\"\n", dump_text;
-            }
-            @render_node_text(node, renderer);
-        }
-        if (!StrICmp(node->parentNode->tagName, "title")) {
-            String.Trim(node->text);
-            Gui.Window.SetTitle(renderer->win, node->text);
-            MemSet(renderer->task->task_title, NULL, STR_LEN);
-            MemCpy(renderer->task->task_title, node->text, STR_LEN - 1);
-            renderer->current_title = StrNew(node->text, renderer->task);
-        }
-    }
-
-    if (!StrICmp(node->tagName, "img")) {
-        if (!node->widthDistanceType || !node->heightDistanceType) {
-            node->width = 32;
-            node->height = 32;
-        }
-        img_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
-            U64_MAX, U64_MAX, node->width, node->height);
-        img_widget->data = node;
-        @renderer_append_image(renderer, img_widget);
+    if (!StrICmp(node->tagName, "form")) {
+        @create_form_from_node(node, renderer);
     }
 
     if (!StrICmp(node->tagName, "li")) {
@@ -1419,6 +1351,82 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         }
     }
 
+    if (!StrICmp(node->tagName, "strike")) {
+        node->linethroughColor = node->color;
+    }
+}
+
+U0 @render_internal_text_node(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    U8* dump_text;
+    node->text = @sanitize_node_text(renderer, node->text);
+    if (!parent_nodes_excluded_from_text_rendering->contains(node->parentNode->tagName)) {
+        if (renderer->debug) {
+            @dump_node_indent(renderer);
+            dump_text = StrNew(node->text);
+            String.Trim(dump_text);
+            "text: \"%s\"\n", dump_text;
+        }
+        @render_node_text(node, renderer);
+    }
+    if (!StrICmp(node->parentNode->tagName, "title")) {
+        String.Trim(node->text);
+        Gui.Window.SetTitle(renderer->win, node->text);
+        MemSet(renderer->task->task_title, NULL, STR_LEN);
+        MemCpy(renderer->task->task_title, node->text, STR_LEN - 1);
+        renderer->current_title = StrNew(node->text, renderer->task);
+    }
+}
+
+U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    if (!node || !renderer)
+        return;
+
+    ++renderer->indent;
+
+    if (!StrICmp(node->tagName, "InternalTextNode")) {
+        @render_internal_text_node(node, renderer);
+        goto render_node_return;
+    }
+
+    if (!@apply_css_rules_to_node(node, renderer))
+        goto render_node_return;
+
+    @apply_attribute_values_to_node(node);
+    @handle_tag_specific_functions(node, renderer);
+
+    I64 i;
+    Context2DWidget* block_widget = NULL;
+    Context2DWidget* img_widget = NULL;
+
+    // Insert a block widget for the element's opening tag
+    if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
+        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
+            U64_MAX, U64_MAX, 0, 0);
+        if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
+            block_widget->ctx = NewContext2D(node->width, node->height)->fill(node->backgroundColor);
+            block_widget->width = block_widget->ctx->width;
+            block_widget->height = block_widget->ctx->height;
+            block_widget->fast_copy = TRUE;
+        }
+        block_widget->data = node;
+    }
+
+    if (!StrICmp(node->tagName, "img")) {
+        if (!node->widthDistanceType || !node->heightDistanceType) {
+            node->width = 32;
+            node->height = 32;
+        }
+        img_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
+            U64_MAX, U64_MAX, node->width, node->height);
+        img_widget->data = node;
+        @renderer_append_image(renderer, img_widget);
+    }
+
+    if (!StrICmp(node->tagName, "input"))
+        @render_form_element(node, renderer);
+
     if (node->children->length) {
         for (i = 0; i < node->children->length; i++)
             @render_node_list(node->children->@(i), renderer);
@@ -1435,6 +1443,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         block_widget->data = node;
     }
 
+render_node_return:
     --renderer->indent;
 }
 
