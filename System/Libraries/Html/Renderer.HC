@@ -1,3 +1,9 @@
+JsonArray* border_style_values = Json.Parse("[\"none\",\"hidden\",\"dotted\",\"dashed\",\"solid\",\"double\",\"groove\",\"ridge\",\"inset\",\"outset\"]", erythros_mem_task);
+JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
+JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
+JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
+JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
+
 // Structure for the ICO header
 class @ico_header
 {
@@ -338,7 +344,7 @@ U32 @css_resolve_color_from_rgb_tuple(U8* str)
     return Color(comp[0], comp[1], comp[2]);
 }
 
-U0 @css_resolve_color(U32* dst, U8* str)
+U0 @css_resolve_color(U8* str, U32* dst)
 {
     if (@css_named_colors->@(str)) {
         *dst = @css_resolve_color_from_rrggbb(@css_named_colors->@(str));
@@ -385,6 +391,172 @@ U0 @set_css_distance(U8* str, F64* value, I64* type)
         *value = Str2F64(buf);
         *type = CSS_DISTANCE_PERCENT;
         return;
+    }
+}
+
+U0 @set_css_border_style(U8* str, I64* style)
+{
+    I64 i;
+    U8* value = NULL;
+    for (i = 0; i < border_style_values->length; i++) {
+        value = border_style_values->@(i);
+        if (!StrICmp(str, value)) {
+            *style = i;
+            return;
+        }
+    }
+}
+
+U0 @set_css_border_width(U8* str, F64* value, I64* type)
+{
+    if (StrFind("%", str))
+        return;
+    if (!StrICmp(str, "thin")) {
+        *value = 1;
+        *type = CSS_DISTANCE_PIXELS;
+        return;
+    }
+    if (!StrICmp(str, "medium")) {
+        *value = 3;
+        *type = CSS_DISTANCE_PIXELS;
+        return;
+    }
+    if (!StrICmp(str, "thick")) {
+        *value = 5;
+        *type = CSS_DISTANCE_PIXELS;
+        return;
+    }
+    @set_css_distance(str, value, type);
+}
+
+U0 @css_resolve_border_color(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 2:
+        @css_resolve_color(values->@(0), &node->border.topColor);
+        @css_resolve_color(values->@(0), &node->border.bottomColor);
+        @css_resolve_color(values->@(1), &node->border.leftColor);
+        @css_resolve_color(values->@(1), &node->border.rightColor);
+        break;
+    case 3:
+        @css_resolve_color(values->@(0), &node->border.topColor);
+        @css_resolve_color(values->@(1), &node->border.leftColor);
+        @css_resolve_color(values->@(1), &node->border.rightColor);
+        @css_resolve_color(values->@(2), &node->border.bottomColor);
+        break;
+    case 4:
+        @css_resolve_color(values->@(0), &node->border.topColor);
+        @css_resolve_color(values->@(1), &node->border.rightColor);
+        @css_resolve_color(values->@(2), &node->border.bottomColor);
+        @css_resolve_color(values->@(3), &node->border.leftColor);
+        break;
+    default:
+        @css_resolve_color(values->@(0), &node->border.topColor);
+        @css_resolve_color(values->@(0), &node->border.rightColor);
+        @css_resolve_color(values->@(0), &node->border.bottomColor);
+        @css_resolve_color(values->@(0), &node->border.leftColor);
+        break;
+    }
+}
+
+U0 @css_resolve_border_style(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 2:
+        @set_css_border_style(values->@(0), &node->border.topStyle);
+        @set_css_border_style(values->@(0), &node->border.bottomStyle);
+        @set_css_border_style(values->@(1), &node->border.leftStyle);
+        @set_css_border_style(values->@(1), &node->border.rightStyle);
+        break;
+    case 3:
+        @set_css_border_style(values->@(0), &node->border.topStyle);
+        @set_css_border_style(values->@(1), &node->border.leftStyle);
+        @set_css_border_style(values->@(1), &node->border.rightStyle);
+        @set_css_border_style(values->@(2), &node->border.bottomStyle);
+        break;
+    case 4:
+        @set_css_border_style(values->@(0), &node->border.topStyle);
+        @set_css_border_style(values->@(1), &node->border.rightStyle);
+        @set_css_border_style(values->@(2), &node->border.bottomStyle);
+        @set_css_border_style(values->@(3), &node->border.leftStyle);
+        break;
+    default:
+        @set_css_border_style(values->@(0), &node->border.topStyle);
+        @set_css_border_style(values->@(0), &node->border.rightStyle);
+        @set_css_border_style(values->@(0), &node->border.bottomStyle);
+        @set_css_border_style(values->@(0), &node->border.leftStyle);
+        break;
+    }
+}
+
+U0 @css_resolve_border_width(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 2:
+        @set_css_border_width(values->@(0), &node->border.top, &node->border.top.type);
+        @set_css_border_width(values->@(0), &node->border.bottom, &node->border.bottom.type);
+        @set_css_border_width(values->@(1), &node->border.left, &node->border.left.type);
+        @set_css_border_width(values->@(1), &node->border.right, &node->border.right.type);
+        break;
+    case 3:
+        @set_css_border_width(values->@(0), &node->border.top, &node->border.top.type);
+        @set_css_border_width(values->@(1), &node->border.left, &node->border.left.type);
+        @set_css_border_width(values->@(1), &node->border.right, &node->border.right.type);
+        @set_css_border_width(values->@(2), &node->border.bottom, &node->border.bottom.type);
+        break;
+    case 4:
+        @set_css_border_width(values->@(0), &node->border.top, &node->border.top.type);
+        @set_css_border_width(values->@(1), &node->border.right, &node->border.right.type);
+        @set_css_border_width(values->@(2), &node->border.bottom, &node->border.bottom.type);
+        @set_css_border_width(values->@(3), &node->border.left, &node->border.left.type);
+        break;
+    default:
+        @set_css_border_width(values->@(0), &node->border.top, &node->border.top.type);
+        @set_css_border_width(values->@(0), &node->border.right, &node->border.right.type);
+        @set_css_border_width(values->@(0), &node->border.bottom, &node->border.bottom.type);
+        @set_css_border_width(values->@(0), &node->border.left, &node->border.left.type);
+        break;
+    }
+}
+
+U0 @css_resolve_border(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 1:
+        // style
+        @set_css_border_style(values->@(0), &node->border.topStyle);
+        @set_css_border_style(values->@(0), &node->border.rightStyle);
+        @set_css_border_style(values->@(0), &node->border.bottomStyle);
+        @set_css_border_style(values->@(0), &node->border.leftStyle);
+        break;
+    case 2:
+        // determine if each value is width, style, or color
+        break;
+    case 3:
+        // width, style, color
+        @set_css_border_width(values->@(0), &node->border.top, &node->border.top.type);
+        @set_css_border_width(values->@(0), &node->border.right, &node->border.right.type);
+        @set_css_border_width(values->@(0), &node->border.bottom, &node->border.bottom.type);
+        @set_css_border_width(values->@(0), &node->border.left, &node->border.left.type);
+        @set_css_border_style(values->@(1), &node->border.topStyle);
+        @set_css_border_style(values->@(1), &node->border.rightStyle);
+        @set_css_border_style(values->@(1), &node->border.bottomStyle);
+        @set_css_border_style(values->@(1), &node->border.leftStyle);
+        @css_resolve_color(values->@(2), &node->border.topColor);
+        @css_resolve_color(values->@(2), &node->border.rightColor);
+        @css_resolve_color(values->@(2), &node->border.bottomColor);
+        @css_resolve_color(values->@(2), &node->border.leftColor);
+        break;
+    default:
+        break;
     }
 }
 
@@ -489,12 +661,28 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
                 // FIXME: Actually do transparency
                 node->backgroundColor = node->parentNode->backgroundColor;
             } else {
-                @css_resolve_color(&node->backgroundColor, values->@(0));
+                @css_resolve_color(values->@(0), &node->backgroundColor);
             }
         }
 
+        if (!StrICmp(key->name, "border")) {
+            @css_resolve_border(node, values);
+        }
+
+        if (!StrICmp(key->name, "border-color")) {
+            @css_resolve_border_color(node, values);
+        }
+
+        if (!StrICmp(key->name, "border-style")) {
+            @css_resolve_border_style(node, values);
+        }
+
+        if (!StrICmp(key->name, "border-width")) {
+            @css_resolve_border_width(node, values);
+        }
+
         if (!StrICmp(key->name, "color")) {
-            @css_resolve_color(&node->color, values->@(0));
+            @css_resolve_color(values->@(0), &node->color);
         }
 
         if (!StrICmp(key->name, "margin")) {
@@ -853,11 +1041,6 @@ U0 @dump_node_indent(HtmlRenderer* renderer)
         "  ";
 }
 
-JsonArray* block_level_element_tag_names = Json.Parse("[\"address\",\"article\",\"aside\",\"blockquote\",\"canvas\",\"dd\",\"div\",\"dl\",\"dt\",\"fieldset\",\"figcaption\",\"figure\",\"footer\",\"form\",\"h1\",\"h2\",\"h3\",\"h4\",\"h5\",\"h6\",\"header\",\"hr\",\"li\",\"main\",\"nav\",\"noscript\",\"ol\",\"p\",\"pre\",\"section\",\"table\",\"tfoot\",\"ul\",\"video\"]", erythros_mem_task);
-JsonArray* parent_nodes_excluded_from_text_rendering = Json.Parse("[\"option\",\"script\",\"style\",\"title\"]", erythros_mem_task);
-JsonArray* text_align_values = Json.Parse("[\"left\",\"center\",\"right\"]", erythros_mem_task);
-JsonArray* display_values = Json.Parse("[\"none\",\"block\",\"inline\",\"inline-block\"]", erythros_mem_task);
-
 U0 @dump_distance_string(U8* out, F64 value, I64 type)
 {
     switch (type) {
@@ -880,6 +1063,12 @@ U0 @dump_distance_string(U8* out, F64 value, I64 type)
         StrCpy(out, "(invalid)");
         break;
     }
+}
+
+U0 @dump_border_string(U8* out, F64 value, I64 type, I64 style, U32 color)
+{
+    @dump_distance_string(out, value, type);
+    String.Append(out, " %s #%08x", border_style_values->@(style), color);
 }
 
 U0 @dump_node_info(@html_dom_node* node, HtmlRenderer* renderer, U8* comment = NULL)
@@ -918,6 +1107,16 @@ U0 @dump_node_info(@html_dom_node* node, HtmlRenderer* renderer, U8* comment = N
     @dump_distance_string(&buf, node->padding.bottom.value, node->padding.bottom.type);
     "bottom: %s, ", buf;
     @dump_distance_string(&buf, node->padding.left.value, node->padding.left.type);
+    "left: %s\n", buf;
+
+    @dump_node_indent(renderer);
+    @dump_border_string(&buf, node->border.top.value, node->border.top.type, node->border.topStyle, node->border.topColor);
+    "border - top: %s, ", buf;
+    @dump_border_string(&buf, node->border.right.value, node->border.right.type, node->border.rightStyle, node->border.rightColor);
+    "right: %s, ", buf;
+    @dump_border_string(&buf, node->border.bottom.value, node->border.bottom.type, node->border.bottomStyle, node->border.bottomColor);
+    "bottom: %s, ", buf;
+    @dump_border_string(&buf, node->border.left.value, node->border.left.type, node->border.leftStyle, node->border.leftColor);
     "left: %s\n", buf;
 
     @dump_node_indent(renderer);
@@ -1413,11 +1612,11 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         return;
 
     if (node->attributes->@("bgcolor")) {
-        @css_resolve_color(&node->backgroundColor, node->attributes->@("bgcolor"));
+        @css_resolve_color(node->attributes->@("bgcolor"), &node->backgroundColor);
     }
 
     if (node->attributes->@("color")) {
-        @css_resolve_color(&node->color, node->attributes->@("color"));
+        @css_resolve_color(node->attributes->@("color"), &node->color);
     }
 
     if (node->attributes->@("align")) {
