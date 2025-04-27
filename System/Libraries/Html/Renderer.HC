@@ -388,6 +388,70 @@ U0 @set_css_distance(U8* str, F64* value, I64* type)
     }
 }
 
+U0 @css_resolve_margin(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 2:
+        @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+        @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
+        @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
+        @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+        break;
+    case 3:
+        @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+        @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
+        @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+        @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
+        break;
+    case 4:
+        @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+        @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
+        @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
+        @set_css_distance(values->@(3), &node->margin.left.value, &node->margin.left.type);
+        break;
+    default:
+        @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
+        @set_css_distance(values->@(0), &node->margin.right.value, &node->margin.right.type);
+        @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
+        @set_css_distance(values->@(0), &node->margin.left.value, &node->margin.left.type);
+        break;
+    }
+}
+
+U0 @css_resolve_padding(@html_dom_node* node, JsonArray* values)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 2:
+        @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+        @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
+        @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
+        @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+        break;
+    case 3:
+        @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+        @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
+        @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+        @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
+        break;
+    case 4:
+        @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+        @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
+        @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
+        @set_css_distance(values->@(3), &node->padding.left.value, &node->padding.left.type);
+        break;
+    default:
+        @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
+        @set_css_distance(values->@(0), &node->padding.right.value, &node->padding.right.type);
+        @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
+        @set_css_distance(values->@(0), &node->padding.left.value, &node->padding.left.type);
+        break;
+    }
+}
+
 Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
 {
     Bool should_display = TRUE;
@@ -434,32 +498,7 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
         }
 
         if (!StrICmp(key->name, "margin")) {
-            switch (values->length) {
-            case 2:
-                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
-                @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
-                @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
-                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
-                break;
-            case 3:
-                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
-                @set_css_distance(values->@(1), &node->margin.left.value, &node->margin.left.type);
-                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
-                @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
-                break;
-            case 4:
-                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
-                @set_css_distance(values->@(1), &node->margin.right.value, &node->margin.right.type);
-                @set_css_distance(values->@(2), &node->margin.bottom.value, &node->margin.bottom.type);
-                @set_css_distance(values->@(3), &node->margin.left.value, &node->margin.left.type);
-                break;
-            default:
-                @set_css_distance(values->@(0), &node->margin.top.value, &node->margin.top.type);
-                @set_css_distance(values->@(0), &node->margin.right.value, &node->margin.right.type);
-                @set_css_distance(values->@(0), &node->margin.bottom.value, &node->margin.bottom.type);
-                @set_css_distance(values->@(0), &node->margin.left.value, &node->margin.left.type);
-                break;
-            }
+            @css_resolve_margin(node, values);
         }
 
         if (!StrICmp(key->name, "margin-top")) {
@@ -476,32 +515,7 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
         }
 
         if (!StrICmp(key->name, "padding")) {
-            switch (values->length) {
-            case 2:
-                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
-                @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
-                @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
-                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
-                break;
-            case 3:
-                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
-                @set_css_distance(values->@(1), &node->padding.left.value, &node->padding.left.type);
-                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
-                @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
-                break;
-            case 4:
-                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
-                @set_css_distance(values->@(1), &node->padding.right.value, &node->padding.right.type);
-                @set_css_distance(values->@(2), &node->padding.bottom.value, &node->padding.bottom.type);
-                @set_css_distance(values->@(3), &node->padding.left.value, &node->padding.left.type);
-                break;
-            default:
-                @set_css_distance(values->@(0), &node->padding.top.value, &node->padding.top.type);
-                @set_css_distance(values->@(0), &node->padding.right.value, &node->padding.right.type);
-                @set_css_distance(values->@(0), &node->padding.bottom.value, &node->padding.bottom.type);
-                @set_css_distance(values->@(0), &node->padding.left.value, &node->padding.left.type);
-                break;
-            }
+            @css_resolve_padding(node, values);
         }
 
         if (!StrICmp(key->name, "padding-top")) {
