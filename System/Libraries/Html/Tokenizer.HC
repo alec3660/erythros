@@ -100,7 +100,7 @@ class @html_dom_node : JsonElement
     I64 heightDistanceType;
 
     @css_area margin;
-    @css_area border;
+    @css_border border;
     @css_area padding;
 
     U32 color;
