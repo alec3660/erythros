@@ -1303,7 +1303,7 @@ U0 @html_submit_form(HtmlRenderer* renderer, I64 index)
     }
 }
 
-U0 @render_form_element(@html_dom_node* node, HtmlRenderer* renderer)
+U0 @render_form_input_element(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !renderer || !node->attributes)
         return;
@@ -1754,14 +1754,20 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     I64 i;
     Context2DWidget* block_widget = NULL;
-    Context2DWidget* img_widget = NULL;
 
-    // Insert a block widget for the element's opening tag
-    if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
+    // If the element is an image,
+    if (!StrICmp(node->tagName, "img")) {
+        @render_image_element(node, renderer);
+        // or, if the element is a form input element,
+    } else if (!StrICmp(node->tagName, "input")) {
+        @render_form_input_element(node, renderer);
+        // or, if the element has CSS display: block, inline-block, insert a block widget for the element's opening tag
+    } else if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
+        // If we have exact dimensions for the element in pixels, create the rect now
         if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
-            block_widget->ctx = NewContext2D(node->width, node->height)->fill(node->backgroundColor);
+            block_widget->ctx = @create_bordered_rect_from_resolved_node(node);
             block_widget->width = block_widget->ctx->width;
             block_widget->height = block_widget->ctx->height;
             block_widget->fast_copy = TRUE;
@@ -1769,26 +1775,12 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         block_widget->data = node;
     }
 
-    if (!StrICmp(node->tagName, "img")) {
-        if (!node->widthDistanceType || !node->heightDistanceType) {
-            node->width = 32;
-            node->height = 32;
-        }
-        img_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
-            U64_MAX, U64_MAX, node->width, node->height);
-        img_widget->data = node;
-        @renderer_append_image(renderer, img_widget);
-    }
-
-    if (!StrICmp(node->tagName, "input"))
-        @render_form_element(node, renderer);
-
     if (node->children->length) {
         for (i = 0; i < node->children->length; i++)
             @render_node_list(node->children->@(i), renderer);
     }
 
-    // Insert a block widget for the element's closing tag
+    // if the element has CSS display: block, inline-block, insert a block widget for the element's closing tag
     if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK || !StrICmp(node->tagName, "br")) {
         block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
             U64_MAX, U64_MAX, 0, 0);
