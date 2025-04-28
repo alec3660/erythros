@@ -976,7 +976,7 @@ U0 HGradientRect2D(Context2D* ctx, I64 x, I64 y, I64 w, I64 h, U32 from,
 U0 Rect2D(Context2D* ctx, I64 x, I64 y, I64 w, I64 h,
     U32 color)
 { // Draw a rectangle fill.
-    Context2D* tmpctx = NewContext2D(Max(4, w), Max(4, h));
+    Context2D* tmpctx = NewContext2D(w, h);
     Fill2D(tmpctx, color);
     CopyRect2D(ctx, x, y, tmpctx);
     DelContext2D(tmpctx);
