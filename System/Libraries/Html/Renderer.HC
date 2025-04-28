@@ -1687,6 +1687,53 @@ U0 @render_internal_text_node(@html_dom_node* node, HtmlRenderer* renderer)
     }
 }
 
+Context2D* @create_bordered_rect_from_resolved_node(@html_dom_node* node)
+{
+    if (!node)
+        return NULL;
+
+    I64 rw = node->border.left.value + node->border.right.value;
+    rw += node->padding.left.value + node->padding.right.value;
+    rw += node->width;
+
+    I64 rh = node->border.top.value + node->border.bottom.value;
+    rh += node->padding.top.value + node->padding.bottom.value;
+    rh += node->height;
+
+    Context2D* ctx = NewContext2D(rw, rh);
+    ctx->fill(node->backgroundColor);
+
+    // Draw borders
+    // FIXME: style
+    if (node->border.top.value) {
+        ctx->fill_rect(0, 0, ctx->width, node->border.top.value, node->border.topColor);
+    }
+    if (node->border.bottom.value) {
+        ctx->fill_rect(0, ctx->height - node->border.bottom.value, ctx->width, node->border.bottom.value, node->border.bottomColor);
+    }
+    if (node->border.left.value) {
+        ctx->fill_rect(0, 0, node->border.left.value, ctx->height, node->border.leftColor);
+    }
+    if (node->border.right.value) {
+        ctx->fill_rect(ctx->width - node->border.right.value, 0, node->border.right.value, ctx->height, node->border.rightColor);
+    }
+
+    return ctx;
+}
+
+U0 @render_image_element(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    Context2DWidget* img_widget = NULL;
+    img_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
+        U64_MAX, U64_MAX, node->width, node->height);
+    if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
+        img_widget->width = node->width;
+        img_widget->height = node->height;
+    }
+    img_widget->data = node;
+    @renderer_append_image(renderer, img_widget);
+}
+
 U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!node || !renderer)
