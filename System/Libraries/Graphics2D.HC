@@ -726,6 +726,8 @@ U0 VLine2D(Context2D* ctx, I64 x, I64 y, I64 y2,
 U0 HLine2D(Context2D* ctx, I64 x, I64 y, I64 x2,
     U32 color)
 { // Draw a horizontal line.
+    if (x > ctx->width || y > ctx->height)
+        return;
     if (x2 < x)
         return;
     I64 width = x2 - x;
