@@ -1687,38 +1687,58 @@ U0 @render_internal_text_node(@html_dom_node* node, HtmlRenderer* renderer)
     }
 }
 
-Context2D* @create_bordered_rect_from_resolved_node(@html_dom_node* node)
+U0 @set_bordered_rect_from_resolved_node(@html_dom_node* node, BorderedRectWidget* widget)
 {
-    if (!node)
-        return NULL;
+    if (!node || !widget || !node->width || !node->height)
+        return;
 
-    I64 rw = node->border.left.value + node->border.right.value;
-    rw += node->padding.left.value + node->padding.right.value;
-    rw += node->width;
+    if (node->widthDistanceType != CSS_DISTANCE_PIXELS || node->heightDistanceType != CSS_DISTANCE_PIXELS)
+        return;
 
-    I64 rh = node->border.top.value + node->border.bottom.value;
-    rh += node->padding.top.value + node->padding.bottom.value;
-    rh += node->height;
+    widget->width = node->width;
+    widget->height = node->height;
+    widget->color = node->backgroundColor;
 
-    Context2D* ctx = NewContext2D(rw, rh);
-    ctx->fill(node->backgroundColor);
-
-    // Draw borders
-    // FIXME: style
     if (node->border.top.value) {
-        ctx->fill_rect(0, 0, ctx->width, node->border.top.value, node->border.topColor);
+        switch (node->border.top.type) {
+        case CSS_DISTANCE_PIXELS:
+            widget->top.size = node->border.top.value;
+            widget->top.color = node->border.topColor;
+            break;
+        default:
+            break;
+        }
     }
     if (node->border.bottom.value) {
-        ctx->fill_rect(0, ctx->height - node->border.bottom.value, ctx->width, node->border.bottom.value, node->border.bottomColor);
+        switch (node->border.bottom.type) {
+        case CSS_DISTANCE_PIXELS:
+            widget->bottom.size = node->border.bottom.value;
+            widget->bottom.color = node->border.bottomColor;
+            break;
+        default:
+            break;
+        }
     }
     if (node->border.left.value) {
-        ctx->fill_rect(0, 0, node->border.left.value, ctx->height, node->border.leftColor);
+        switch (node->border.left.type) {
+        case CSS_DISTANCE_PIXELS:
+            widget->left.size = node->border.left.value;
+            widget->left.color = node->border.leftColor;
+            break;
+        default:
+            break;
+        }
     }
     if (node->border.right.value) {
-        ctx->fill_rect(ctx->width - node->border.right.value, 0, node->border.right.value, ctx->height, node->border.rightColor);
+        switch (node->border.right.type) {
+        case CSS_DISTANCE_PIXELS:
+            widget->right.size = node->border.right.value;
+            widget->right.color = node->border.rightColor;
+            break;
+        default:
+            break;
+        }
     }
-
-    return ctx;
 }
 
 U0 @render_image_element(@html_dom_node* node, HtmlRenderer* renderer)
@@ -1753,7 +1773,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
     @handle_tag_specific_functions(node, renderer);
 
     I64 i;
-    Context2DWidget* block_widget = NULL;
+    BorderedRectWidget* block_widget = NULL;
 
     // If the element is an image,
     if (!StrICmp(node->tagName, "img")) {
@@ -1763,15 +1783,10 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
         @render_form_input_element(node, renderer);
         // or, if the element has CSS display: block, inline-block, insert a block widget for the element's opening tag
     } else if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
-        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
+        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BORDERED_RECT,
             U64_MAX, U64_MAX, 0, 0);
-        // If we have exact dimensions for the element in pixels, create the rect now
-        if (node->widthDistanceType == CSS_DISTANCE_PIXELS && node->heightDistanceType == CSS_DISTANCE_PIXELS) {
-            block_widget->ctx = @create_bordered_rect_from_resolved_node(node);
-            block_widget->width = block_widget->ctx->width;
-            block_widget->height = block_widget->ctx->height;
-            block_widget->fast_copy = TRUE;
-        }
+        // Try to set dimensions if we can
+        @set_bordered_rect_from_resolved_node(node, block_widget);
         block_widget->data = node;
     }
 
@@ -1782,7 +1797,7 @@ U0 @render_node_list(@html_dom_node* node, HtmlRenderer* renderer)
 
     // if the element has CSS display: block, inline-block, insert a block widget for the element's closing tag
     if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK || !StrICmp(node->tagName, "br")) {
-        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_CONTEXT2D,
+        block_widget = Gui.CreateWidget(renderer->win, WIDGET_TYPE_BORDERED_RECT,
             U64_MAX, U64_MAX, 0, 0);
         if (node->display == CSS_DISPLAY_BLOCK || node->display == CSS_DISPLAY_INLINE_BLOCK) {
             block_widget->width = -0xbeef;
