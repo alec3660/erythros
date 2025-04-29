@@ -13,7 +13,7 @@ ButtonWidget* backbtn1 = NULL;
 ButtonWidget* fwdbtn1 = NULL;
 ButtonWidget* refreshbtn1 = NULL;
 ButtonWidget* hanbagabtn1 = NULL;
-Context2DWidget* background1 = NULL;
+RectWidget* background1 = NULL;
 TextInputWidget* addressbar1 = NULL;
 
 @window_widgets_list* widgets_base = NULL;
@@ -325,9 +325,7 @@ U0 @cyberia_history()
     else
         String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
 
-    renderer->background_widget->ctx = renderer->background_ctx;
-    renderer->background_widget->ctx->width = Display.Width();
-    renderer->background_widget->ctx->height = Display.Height();
+    renderer->background_widget->color = renderer->background_color;
 
     Gui.Window.SetTitle(renderer->win, renderer->current_title);
 
@@ -400,10 +398,8 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
-    renderer->background_ctx = NewContext2D(Display.Width(), Display.Height())->fill(Color(255, 255, 255));
-    renderer->background_widget->ctx = renderer->background_ctx;
-    renderer->background_widget->ctx->width = Display.Width();
-    renderer->background_widget->ctx->height = Display.Height();
+    renderer->background_color = Color(255, 255, 255);
+    renderer->background_widget->color = renderer->background_color;
 
     renderer->vertical_scroll_widget = vscroll1;
     renderer->win = win;
@@ -589,15 +585,13 @@ U0 @cyberia_win_repaint(Window*)
 
     hanbagabtn1->x = win->width - hanbagabtn1->width - 9;
     addressbar1->width = hanbagabtn1->x - addressbar1->x - 3;
-    background1->width = 0;
-    background1->height = 0;
-    background1->ctx->width = win->width;
-    background1->ctx->height = win->height - 84;
+    background1->width = win->width;
+    background1->height = win->height - 84;
 
     vscroll1->x = win->width;
     vscroll1->y = background1->y;
     vscroll1->width = 16;
-    vscroll1->height = background1->ctx->height;
+    vscroll1->height = background1->height;
 
     I64 delta_z = Mouse.z - old_mouse_z;
     if (delta_z) {
@@ -614,7 +608,7 @@ U0 @cyberia_win_repaint(Window*)
         status2->y = win->height;
     }
 
-    statusbackdrop1->y = background1->y + background1->ctx->height;
+    statusbackdrop1->y = background1->y + background1->height;
 
     if (!browser || !browser->renderer || !widgets_base)
         return;
@@ -625,9 +619,9 @@ U0 @cyberia_win_repaint(Window*)
         old_window_height = win->height;
     }
 
-    if (browser->renderer->calculated_page_height > background1->ctx->height) {
+    if (browser->renderer->calculated_page_height > background1->height) {
         vscroll1->max = browser->renderer->calculated_page_height;
-        vscroll1->length = (vscroll1->height - 31) / MaxI64(2, ToI64(browser->renderer->calculated_page_height / background1->ctx->height));
+        vscroll1->length = (vscroll1->height - 31) / MaxI64(2, ToI64(browser->renderer->calculated_page_height / background1->height));
         vscroll1->x = win->width - 25;
     }
 }
@@ -728,9 +722,8 @@ U0 @cyberia_init()
     hanbagabtn1->image = @image_file_to_context2d("M:/Applications/Internet/Cyberia.app/Resources/hanbaga.png");
     hanbagabtn1->width = hanbagabtn1->image->width + 8;
 
-    background1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, 0, 36, 0, 0);
-    background1->ctx = NewContext2D(Display.Width(), Display.Height());
-    background1->ctx->fill(Color(255, 255, 255));
+    background1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, 0, 36, 0, 0);
+    background1->color = Color(255, 255, 255);
 
     vscroll1 = Gui.CreateWidget(win, WIDGET_TYPE_VERT_SCROLLBAR, -99999, -99999, 0, 0);
     Gui.Widget.SetCallback(vscroll1, "change", &@cyberia_vscroll_change);
