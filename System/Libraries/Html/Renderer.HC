@@ -1867,9 +1867,6 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
     if (!renderer || !renderer->win || !renderer->widgets_base)
         return;
 
-    renderer->background_widget->width = renderer->win->width;
-    renderer->background_widget->height = renderer->win->height;
-
     renderer->state_index = -1;
 
     I64 x1 = 0;
