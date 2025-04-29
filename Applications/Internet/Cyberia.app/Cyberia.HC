@@ -360,6 +360,17 @@ U0 @cyberia_fwd_clicked()
     }
 }
 
+@window_widgets_list* @cyberia_append_widget_to_list(@window_widgets_list* list, Widget* widget, CTask* task)
+{
+    while (list->next) {
+        list = list->next;
+    }
+    list->next = CAlloc(sizeof(@window_widgets_list), task);
+    list->next->prev = list;
+    list->next->widget = widget;
+    return list->next;
+}
+
 U0 @cyberia_navigate(Bool refresh = FALSE)
 {
     win->focused_widget = NULL;
@@ -391,6 +402,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     HtmlRenderer* renderer = browser->renderer;
     MemSet(renderer, 0, sizeof(HtmlRenderer));
     widgets_base->next = CAlloc(sizeof(@window_widgets_list), browser->task);
+    widgets_base->next->prev = widgets_base;
     renderer->images = NULL;
     renderer->link_pointer = Compositor.theme.pointer.link;
     renderer->link_callback = &@cyberia_link_clicked;
@@ -493,38 +505,17 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     @render_node_list(node_list, renderer);
 
     @window_widgets_list* append = renderer->widgets_base;
-    while (append->next) {
-        append = append->next;
-    }
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = controlsbackdrop1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = backbtn1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = fwdbtn1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = refreshbtn1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = hanbagabtn1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = addressbar1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = statusbackdrop1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = status1;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = status2;
-    append = append->next;
-    append->next = CAlloc(sizeof(@window_widgets_list), browser->task);
-    append->next->widget = vscroll1;
+    append = @cyberia_append_widget_to_list(append, controlsbackdrop1, browser->task);
+    append = @cyberia_append_widget_to_list(append, backbtn1, browser->task);
+    append = @cyberia_append_widget_to_list(append, fwdbtn1, browser->task);
+    append = @cyberia_append_widget_to_list(append, refreshbtn1, browser->task);
+    append = @cyberia_append_widget_to_list(append, hanbagabtn1, browser->task);
+    append = @cyberia_append_widget_to_list(append, addressbar1, browser->task);
+    append = @cyberia_append_widget_to_list(append, statusbackdrop1, browser->task);
+    append = @cyberia_append_widget_to_list(append, status1, browser->task);
+    append = @cyberia_append_widget_to_list(append, status2, browser->task);
+    append = @cyberia_append_widget_to_list(append, vscroll1, browser->task);
+
     vscroll1->scroll = 0;
 
     @reflow_node_list(renderer);
