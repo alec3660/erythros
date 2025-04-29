@@ -17,6 +17,8 @@
 #define WIDGET_TYPE_VERT_SCROLLBAR 13
 #define WIDGET_TYPE_MENU_ITEM 14
 #define WIDGET_TYPE_LISTVIEW 15
+#define WIDGET_TYPE_RECT 20
+#define WIDGET_TYPE_BORDERED_RECT 21
 
 #define TERMINAL_MAX_COLS 1920 / 8
 
@@ -65,6 +67,23 @@ class CheckBoxWidget : Widget {
 class RadioButtonWidget : Widget {
     I64 group;
     Bool selected;
+};
+
+class RectWidget : Widget {
+    U32 color;
+};
+
+class BorderedRectBorder {
+    I64 size;
+    I64 style;
+    U32 color;
+};
+
+class BorderedRectWidget : RectWidget {
+    BorderedRectBorder top;
+    BorderedRectBorder bottom;
+    BorderedRectBorder left;
+    BorderedRectBorder right;
 };
 
 class @terminal_widget_attr
@@ -621,6 +640,12 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
     switch (type) {
     case WIDGET_TYPE_NULL:
         return NULL;
+    case WIDGET_TYPE_RECT:
+        size_of_widget = sizeof(RectWidget) * 2;
+        goto @widget_create_set_values;
+    case WIDGET_TYPE_BORDERED_RECT:
+        size_of_widget = sizeof(BorderedRectWidget) * 2;
+        goto @widget_create_set_values;
     case WIDGET_TYPE_BUTTON:
         size_of_widget = sizeof(ButtonWidget) * 2;
         goto @widget_create_set_values;
@@ -720,6 +745,12 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
     switch (type) {
     case WIDGET_TYPE_NULL:
         return;
+    case WIDGET_TYPE_RECT:
+        size_of_widget = sizeof(RectWidget);
+        break;
+    case WIDGET_TYPE_BORDERED_RECT:
+        size_of_widget = sizeof(BorderedRectWidget);
+        break;
     case WIDGET_TYPE_BUTTON:
         size_of_widget = sizeof(ButtonWidget);
         break;
