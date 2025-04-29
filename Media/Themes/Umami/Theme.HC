@@ -1267,24 +1267,27 @@ U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
 
     widget_is_hovered = FALSE;
     widgets_list = win->widget;
-    while (widgets_list) {
-        if (widgets_list->widget) {
+    if (widgets_list) {
+        // Skip to most recently created
+        while (widgets_list->next)
+            widgets_list = widgets_list->next;
+        // Check hovered/focused, front-to-back
+        while (widgets_list && !widget_is_hovered) {
             widget = widgets_list->widget;
-            x = win->x + origin_x + widget->x;
-            y = win->y + origin_y + widget->y;
-
-            if (@gui_window_is_hovered(win) && @widget_is_hovered(x, y, widget)) {
-                win->hovered_widget = widget;
-                widget_is_hovered = TRUE;
+            if (widget) {
+                x = win->x + origin_x + widget->x;
+                y = win->y + origin_y + widget->y;
+                if (@gui_window_is_hovered(win) && @widget_is_hovered(x, y, widget)) {
+                    widget_is_hovered = TRUE;
+                    win->hovered_widget = widget;
+                    if (widget_is_hovered && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
+                        win->focused_widget = widget;
+                        win->mouse_down_widget = widget;
+                    }
+                }
             }
-
-            if (@widget_is_hovered(x, y, widget) && event == CPZ_MSG_WIN_LEFT_BTN_DOWN) {
-                win->focused_widget = widget;
-                win->mouse_down_widget = widget;
-                break;
-            }
+            widgets_list = widgets_list->prev;
         }
-        widgets_list = widgets_list->next;
     }
 
     if (!widget_is_hovered)
