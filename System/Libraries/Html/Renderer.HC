@@ -80,8 +80,8 @@ class @html_renderer
     U8 status_text[128];
     VerticalScrollBarWidget* vertical_scroll_widget;
     TextLabelWidget* status_widget;
-    Context2DWidget* background_widget;
-    Context2D* background_ctx;
+    RectWidget* background_widget;
+    U32 background_color;
     Window* win;
     @window_widgets_list* widgets_base;
     @window_widgets_list* images;
@@ -1630,12 +1630,16 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
         node->textAlign = CSS_TEXT_ALIGN_CENTER;
 }
 
+U0 @set_background_color_for_page(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    renderer->background_color = node->backgroundColor;
+    renderer->background_widget->color = renderer->background_color;
+}
+
 U0 @handle_tag_specific_functions(@html_dom_node* node, HtmlRenderer* renderer)
 {
     if (!StrICmp(node->tagName, "body")) {
-        renderer->background_ctx->width = Display.Width();
-        renderer->background_ctx->height = Display.Height();
-        renderer->background_ctx->fill(node->backgroundColor);
+        @set_background_color_for_page(node, renderer);
     }
 
     if (!StrICmp(node->tagName, "form")) {
@@ -1863,7 +1867,9 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
     if (!renderer || !renderer->win || !renderer->widgets_base)
         return;
 
-    renderer->background_widget->ctx = renderer->background_ctx;
+    renderer->background_widget->width = renderer->win->width;
+    renderer->background_widget->height = renderer->win->height;
+
     renderer->state_index = -1;
 
     I64 x1 = 0;
