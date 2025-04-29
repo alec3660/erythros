@@ -668,6 +668,9 @@ U0 @cyberia_init()
     Gui.Window.Center(win);
     Gui.Window.SetFocus(win);
 
+    background1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, 0, 36, 0, 0);
+    background1->color = Color(255, 255, 255);
+
     controlsbackdrop1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, -14, 0, 0, 0);
     controlsbackdrop1->y = -14;
     controlsbackdrop1->ctx = NewContext2D(Display.Width(), 36 + 14)->fill(Color(204, 204, 204));
@@ -712,9 +715,6 @@ U0 @cyberia_init()
     Gui.Widget.SetCallback(hanbagabtn1, "clicked", &@cyberia_hanbaga_show);
     hanbagabtn1->image = @image_file_to_context2d("M:/Applications/Internet/Cyberia.app/Resources/hanbaga.png");
     hanbagabtn1->width = hanbagabtn1->image->width + 8;
-
-    background1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, 0, 36, 0, 0);
-    background1->color = Color(255, 255, 255);
 
     vscroll1 = Gui.CreateWidget(win, WIDGET_TYPE_VERT_SCROLLBAR, -99999, -99999, 0, 0);
     Gui.Widget.SetCallback(vscroll1, "change", &@cyberia_vscroll_change);
