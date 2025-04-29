@@ -1328,6 +1328,27 @@ U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
     }
 }
 
+U0 @umami_bordered_rect_repaint(Window* win, BorderedRectWidget* widget, I64 x, I64 y)
+{
+    I64 rw = widget->left.size + widget->width + widget->right.size;
+    I64 rh = widget->top.size + widget->height + widget->bottom.size;
+    Rect2D(win->render_ctx, x, y, rw, rh, widget->color);
+    // Draw borders
+    // FIXME: style
+    if (widget->top.size) {
+        Rect2D(win->render_ctx, x + 0, y + 0, rw, widget->top.size, widget->top.color);
+    }
+    if (widget->bottom.size) {
+        Rect2D(win->render_ctx, x + 0, y + rh - widget->bottom.size, rw, widget->bottom.size, widget->bottom.color);
+    }
+    if (widget->left.size) {
+        Rect2D(win->render_ctx, x + 0, y + 0, widget->left.size, rh, widget->left.color);
+    }
+    if (widget->right.size) {
+        Rect2D(win->render_ctx, x + rw - widget->right.size, y + 0, widget->right.size, rh, widget->right.color);
+    }
+}
+
 U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
 {
     @window_widgets_list* widgets_list;
@@ -1349,6 +1370,14 @@ U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
                 goto @umami_skip_widget_repaint;
             switch (widget->type) {
             case NULL:
+                break;
+            case WIDGET_TYPE_BORDERED_RECT:
+                if (widget->width && widget->height)
+                    @umami_bordered_rect_repaint(win, widget, x, y);
+                break;
+            case WIDGET_TYPE_RECT:
+                if (widget->width && widget->height)
+                    Rect2D(win->render_ctx, x, y, widget->width, widget->height, widget(RectWidget*)->color);
                 break;
             case WIDGET_TYPE_BUTTON:
                 @umami_button_repaint(win, widget, x, y);
