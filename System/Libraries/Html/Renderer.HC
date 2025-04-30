@@ -1563,14 +1563,14 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                 fragment_widget->ctx = NewContext2D(text_width, ToI64(node->parentNode->fontSize * 1.2))->fill(node->parentNode->backgroundColor)->text(font_name, 0, 0, node->parentNode->fontSize, node->parentNode->color, fragments[i]);
 
                 if (node->parentNode->linethroughColor) {
-                    fragment_widget->ctx->line(0, (fragment_widget->ctx->height / 2), fragment_widget->ctx->width, (fragment_widget->ctx->height / 2), node->parentNode->linethroughColor);
+                    fragment_widget->ctx->line(0, (fragment_widget->ctx->height / 2), fragment_widget->ctx->width - 1, (fragment_widget->ctx->height / 2), node->parentNode->linethroughColor);
                 }
 
                 if (node->parentNode->underlineColor) {
                     if (underline_y_pos < 0)
                         underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 3;
                     if (!(underline_y_pos < 0)) {
-                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width, underline_y_pos, node->parentNode->color);
+                        fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width - 1, underline_y_pos, node->parentNode->color);
                     }
                 }
 

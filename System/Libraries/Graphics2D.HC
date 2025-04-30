@@ -713,8 +713,6 @@ U0 Plot2D(Context2D* ctx, I64 x, I64 y,
 U0 VLine2D(Context2D* ctx, I64 x, I64 y, I64 y2,
     U32 color)
 { // Draw a vertical line.
-    if (x > ctx->width || y > ctx->height)
-        return;
     if (y2 < y)
         return;
     while (y < y2 + 1) {
@@ -726,22 +724,27 @@ U0 VLine2D(Context2D* ctx, I64 x, I64 y, I64 y2,
 U0 HLine2D(Context2D* ctx, I64 x, I64 y, I64 x2,
     U32 color)
 { // Draw a horizontal line.
-    if (!ctx || !ctx->fb || x > ctx->width || y < 0 || y > ctx->height)
-        return;
     if (x2 < x)
         return;
-    I64 width = x2 - x;
-    MemSetU32(ctx->fb + (y * ctx->width) + x, color,
-        T(x + width > ctx->width, ctx->width - x, width));
+    if (y < 0 || y > ctx->height - 1)
+        return;
+    if (x > ctx->width - 1)
+        return;
+    if (x2 < 0)
+        return;
+    I64 min_x = MaxI64(0, x);
+    I64 max_x = MinI64(ctx->width - 1, x2);
+    I64 width = (max_x - min_x) + 1;
+    if (width == 1) {
+        Plot2D(ctx, x, y, color);
+    } else {
+        MemSetU32(ctx->fb + (y * ctx->width) + x, color, width);
+    }
 }
 
 U0 Line2D(Context2D* ctx, I64 x1, I64 y1, I64 x2, I64 y2,
     U32 color)
 { // Draw an arbitrary line using Bresenham's algorithm.
-    x1 = Max(0, x1);
-    y1 = Max(0, y1);
-    x2 = Min(ctx->width, x2);
-    y2 = Min(ctx->height, y2);
     if (x1 == x2) {
         VLine2D(ctx, x1, y1, y2, color);
         return;
@@ -977,7 +980,7 @@ U0 Rect2D(Context2D* ctx, I64 x, I64 y, I64 w, I64 h,
 { // Draw a rectangle fill.
     I64 i;
     for (i = y; i < y + h; i++) {
-        HLine2D(ctx, x, i, x + w, color);
+        HLine2D(ctx, x, i, x + w - 1, color);
     }
 }
 
