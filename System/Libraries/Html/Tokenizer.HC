@@ -926,6 +926,7 @@ U0 @tokenizer_html_state_attribute_value_unquoted(@html_tokenizer* t)
     */
     case '>':
         // Switch to the data state. Emit the current tag token.
+        @set_current_attribute_on_current_node(t);
         @emit_current_node(t);
         t->state = HTML_STATE_DATA;
         break;
