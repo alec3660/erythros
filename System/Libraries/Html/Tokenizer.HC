@@ -103,6 +103,13 @@ class @html_dom_node : JsonElement
     @css_border border;
     @css_area padding;
 
+    // for reflow
+    @css_area resolvedMargin;
+    @css_border resolvedBorder;
+    @css_area resolvedPadding;
+    I64 resolvedWidth;
+    I64 resolvedHeight;
+
     U32 color;
     U32 backgroundColor;
     U32 linethroughColor;
