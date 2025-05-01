@@ -996,13 +996,13 @@ U0 @compositor_blit_window_backing_stores()
                     // Bottom shadow
                     Line2D(Compositor.ctx, win_list->window->x + 1,
                         win_list->window->y + win_list->window->height + 1,
-                        win_list->window->x + win_list->window->width + 2,
+                        win_list->window->x + win_list->window->width + 1,
                         win_list->window->y + win_list->window->height + 1,
                         Compositor.theme.color.active_border);
                     // Right shadow
                     Line2D(Compositor.ctx,
                         win_list->window->x - 1 + win_list->window->width + 2,
-                        win_list->window->y + 1,
+                        win_list->window->y,
                         win_list->window->x - 1 + win_list->window->width + 2,
                         win_list->window->y + win_list->window->height + 1,
                         Compositor.theme.color.active_border);
