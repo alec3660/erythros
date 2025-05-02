@@ -390,7 +390,7 @@ U0 @set_css_distance(U8* str, F64* value, I64* type)
         *type = CSS_DISTANCE_AUTO;
         return;
     }
-    U8 buf[16];
+    U8 buf[128];
     StrCpy(buf, str);
     if (String.EndsWith("px", buf)) {
         buf[StrLen(buf) - 2] = NULL;
