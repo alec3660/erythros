@@ -407,6 +407,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->link_pointer = Compositor.theme.pointer.link;
     renderer->link_callback = &@cyberia_link_clicked;
     renderer->form_submit_callback = &@cyberia_form_submit_clicked;
+    renderer->image_load_callback = &@reflow_node_list;
     renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
@@ -576,7 +577,7 @@ U0 @cyberia_win_repaint(Window*)
 
     hanbagabtn1->x = win->width - hanbagabtn1->width - 9;
     addressbar1->width = hanbagabtn1->x - addressbar1->x - 3;
-    background1->width = win->width;
+    background1->width = win->width - 9;
     background1->height = win->height - 84;
 
     vscroll1->x = win->width;
@@ -614,6 +615,7 @@ U0 @cyberia_win_repaint(Window*)
         vscroll1->max = browser->renderer->calculated_page_height;
         vscroll1->length = (vscroll1->height - 31) / MaxI64(2, ToI64(browser->renderer->calculated_page_height / background1->height));
         vscroll1->x = win->width - 25;
+        background1->width -= vscroll1->width;
     }
 }
 

@@ -1,0 +1,637 @@
+// FIXME: *** Handle margin collapsing ***
+
+Bool reflow_debug = FALSE;
+
+U0 @reflow_position_widget(Widget* widget, HtmlRenderer* renderer)
+{
+    widget->x = renderer->reflow.bounds.x1 + renderer->reflow.inline.x;
+    widget->y = renderer->reflow.bounds.y1 + renderer->reflow.inline.y + renderer->scroll_y;
+}
+
+U0 @reflow_break_line(HtmlRenderer* renderer)
+{
+    renderer->reflow.inline.x = 0;
+    renderer->reflow.inline.y += renderer->reflow.inline.max_line_height;
+    renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+}
+
+U0 @reflow_break_line_if_not_enough_horizontal_space(Widget* widget, HtmlRenderer* renderer)
+{
+    I32 combined_x = renderer->reflow.bounds.x1 + renderer->reflow.inline.x;
+    if (combined_x > renderer->reflow.bounds.x2 - widget->width) {
+        @reflow_break_line(renderer);
+    }
+}
+
+U0 @reflow_break_line_if_inline_x_is_positive(HtmlRenderer* renderer)
+{
+    if (renderer->reflow.inline.x > 0) {
+        @reflow_break_line(renderer);
+    }
+}
+
+U0 @reflow_resolve_css_side(@html_dom_node* node, @css_side* parent_resolved_side, @css_side* resolved_side, @css_side* side)
+{
+    switch (side->type) {
+    case CSS_DISTANCE_PIXELS:
+        MemCpy(resolved_side, side, sizeof(@css_side));
+        break;
+    case CSS_DISTANCE_EM:
+        resolved_side->value = ToI64(side->value * node->fontSize);
+        resolved_side->type = CSS_DISTANCE_PIXELS;
+        break;
+    case CSS_DISTANCE_PERCENT:
+        resolved_side->value = ToI64(parent_resolved_side->value * (100 / side->value));
+        resolved_side->type = CSS_DISTANCE_PIXELS;
+        break;
+    default:
+        break;
+    }
+}
+
+U0 @reflow_resolve_dynamic_margins(@html_dom_node* node)
+{
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.top, &node->resolvedMargin.top, &node->margin.top);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.right, &node->resolvedMargin.right, &node->margin.right);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.bottom, &node->resolvedMargin.bottom, &node->margin.bottom);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.left, &node->resolvedMargin.left, &node->margin.left);
+}
+
+U0 @reflow_resolve_dynamic_borders(@html_dom_node* node)
+{
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedBorder.top, &node->resolvedBorder.top, &node->border.top);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedBorder.right, &node->resolvedBorder.right, &node->border.right);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedBorder.bottom, &node->resolvedBorder.bottom, &node->border.bottom);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedBorder.left, &node->resolvedBorder.left, &node->border.left);
+}
+
+U0 @reflow_resolve_dynamic_padding(@html_dom_node* node)
+{
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedPadding.top, &node->resolvedPadding.top, &node->padding.top);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedPadding.right, &node->resolvedPadding.right, &node->padding.right);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedPadding.bottom, &node->resolvedPadding.bottom, &node->padding.bottom);
+    @reflow_resolve_css_side(node, &node->parentNode->resolvedPadding.left, &node->resolvedPadding.left, &node->padding.left);
+}
+
+I64 @reflow_resolve_css_distance(F64 parent_distance, F64 distance, I64 type)
+{
+    switch (type) {
+    case CSS_DISTANCE_PIXELS:
+        return ToI64(distance);
+    case CSS_DISTANCE_EM:
+        return ToI64(distance * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+    case CSS_DISTANCE_PERCENT:
+        return ToI64(parent_distance * (100 / distance));
+    default:
+        return 0;
+    }
+}
+
+U0 @reflow_resolve_dynamic_width_and_height(@html_dom_node* node)
+{
+    node->resolvedWidth = @reflow_resolve_css_distance(node->parentNode->width, node->width, node->widthDistanceType);
+    node->resolvedHeight = @reflow_resolve_css_distance(node->parentNode->height, node->height, node->heightDistanceType);
+}
+
+U0 @reflow_resolve_dimensions_for_widget(Widget* widget)
+{
+    @html_dom_node* node = widget->data;
+
+    // FIXME: Handle dynamic width/height for images
+    if (!StrICmp(node->tagName, "img") && (!widget->width || !widget->height)) {
+        if (widget->type == WIDGET_TYPE_CONTEXT2D && widget(Context2DWidget*)->ctx) {
+            node->width = widget(Context2DWidget*)->ctx->width;
+            node->widthDistanceType = CSS_DISTANCE_PIXELS;
+            node->height = widget(Context2DWidget*)->ctx->height;
+            node->heightDistanceType = CSS_DISTANCE_PIXELS;
+            widget->width = node->resolvedWidth = node->width;
+            widget->height = node->resolvedHeight = node->height;
+            return;
+        }
+    }
+
+    // set a random bgcolor for the widget, so we can tell what is what during debugging
+    if (reflow_debug) {
+        switch (widget->type) {
+        case WIDGET_TYPE_BORDERED_RECT:
+            widget(BorderedRectWidget*)->color = Color(RandU16 & 0xff, RandU16 & 0xff, RandU16 & 0xff);
+            break;
+        case WIDGET_TYPE_RECT:
+            widget(RectWidget*)->color = Color(RandU16 & 0xff, RandU16 & 0xff, RandU16 & 0xff);
+            break;
+        default:
+            break;
+        }
+    }
+
+    @reflow_resolve_dynamic_width_and_height(node);
+    @reflow_resolve_dynamic_margins(node);
+    @reflow_resolve_dynamic_borders(node);
+    @reflow_resolve_dynamic_padding(node);
+}
+
+U0 @reflow_push(HtmlRenderer* renderer)
+{
+    if (reflow_debug) {
+        "push: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+    ++renderer->reflow_index;
+    MemCpy(&renderer->reflow_stack[renderer->reflow_index], &renderer->reflow, sizeof(@renderer_reflow));
+}
+
+U0 @reflow_pop(HtmlRenderer* renderer)
+{
+    if (reflow_debug) {
+        "pop: before: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+    MemCpy(&renderer->reflow, &renderer->reflow_stack[renderer->reflow_index], sizeof(@renderer_reflow));
+    --renderer->reflow_index;
+    if (reflow_debug) {
+        "pop: after: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+}
+
+U0 @reflow_set_initial_values(HtmlRenderer* renderer)
+{
+    renderer->reflow.bounds.x1 = 0;
+    renderer->reflow.bounds.x2 = renderer->background_widget->width;
+    renderer->reflow.bounds.y1 = 0;
+    renderer->reflow.bounds.y2 = renderer->win->height;
+    renderer->reflow.inline.x = 0;
+    renderer->reflow.inline.y = 0;
+    renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+    renderer->reflow.parent = NULL;
+    renderer->reflow_index = -1;
+}
+
+U0 @reflow_update_vertical_scrollbar(HtmlRenderer* renderer)
+{
+    // FIXME: this is glitchy and wrong
+    VerticalScrollBarWidget* vscroll = renderer->vertical_scroll_widget;
+    I32 origin_y = renderer->background_widget->y;
+    I32 offset_y = origin_y;
+    I32 minimum_vscroll_value = 0;
+    if (vscroll && vscroll->max && vscroll->value) {
+        minimum_vscroll_value = ToI64((vscroll->max * 1.0) / (vscroll->height * 1.0) * (16 * 1.0));
+        offset_y -= vscroll->value - minimum_vscroll_value;
+    }
+    renderer->scroll_y = offset_y;
+}
+
+Bool @reflow_widget_has_closing_tag(Widget* widget)
+{
+    if (!widget)
+        return FALSE;
+    return (widget->width == -0xbeef && widget->height == -0xcafe);
+}
+
+U0 @reflow_apply_margins_to_bounds(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+
+    I32 auto_width = 0;
+    I32 border_left = 0;
+    I32 border_right = 0;
+
+    if (node->margin.left.type == CSS_DISTANCE_AUTO && node->margin.right.type == CSS_DISTANCE_AUTO) {
+        switch (widget->type) {
+        case WIDGET_TYPE_BORDERED_RECT:
+            border_left = widget(BorderedRectWidget*)->left.size;
+            border_right = widget(BorderedRectWidget*)->right.size;
+            break;
+        default:
+            break;
+        }
+        auto_width = ((renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1) / 2) - ((border_left + widget->width + border_right) / 2);
+        renderer->reflow.bounds.x1 += auto_width;
+        renderer->reflow.bounds.x2 -= auto_width;
+    }
+
+    switch (node->resolvedMargin.left.type) {
+    case CSS_DISTANCE_UNDEFINED:
+        break;
+    case CSS_DISTANCE_PIXELS:
+    default:
+        renderer->reflow.bounds.x1 += ToI64(node->resolvedMargin.left.value);
+        break;
+    }
+
+    switch (node->resolvedMargin.right.type) {
+    case CSS_DISTANCE_UNDEFINED:
+        break;
+    case CSS_DISTANCE_PIXELS:
+    default:
+        renderer->reflow.bounds.x2 -= ToI64(node->resolvedMargin.right.value);
+        break;
+    }
+
+    switch (node->resolvedMargin.top.type) {
+    case CSS_DISTANCE_UNDEFINED:
+        break;
+    case CSS_DISTANCE_PIXELS:
+    default:
+        renderer->reflow.bounds.y1 += ToI64(node->resolvedMargin.top.value);
+        break;
+    }
+
+    switch (node->resolvedMargin.bottom.type) {
+    case CSS_DISTANCE_UNDEFINED:
+        break;
+    case CSS_DISTANCE_PIXELS:
+    default:
+        renderer->reflow.bounds.y2 -= ToI64(node->resolvedMargin.bottom.value);
+        break;
+    }
+}
+
+U0 @reflow_apply_border_and_padding_to_bounds(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    renderer->reflow.bounds.x1 += ToI64(node->resolvedBorder.left.value) + ToI64(node->resolvedPadding.left.value);
+    renderer->reflow.bounds.x2 -= ToI64(node->resolvedBorder.right.value) + ToI64(node->resolvedPadding.right.value);
+    renderer->reflow.bounds.y1 += ToI64(node->resolvedBorder.top.value) + ToI64(node->resolvedPadding.top.value);
+    renderer->reflow.bounds.y2 -= ToI64(node->resolvedBorder.bottom.value) + ToI64(node->resolvedPadding.bottom.value);
+}
+
+U0 @reflow_reset_inline_position(HtmlRenderer* renderer)
+{
+    renderer->reflow.inline.x = 0;
+    renderer->reflow.inline.y = 0;
+}
+
+U0 @reflow_set_widget_dimensions(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+
+    if (node->widthDistanceType == CSS_DISTANCE_UNDEFINED) {
+        switch (node->display) {
+        case CSS_DISPLAY_BLOCK:
+            if (!(!StrICmp(node->tagName, "html") || !StrICmp(node->tagName, "body"))) {
+                node->resolvedWidth = renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (node->heightDistanceType == CSS_DISTANCE_UNDEFINED) {
+        switch (node->display) {
+        case CSS_DISPLAY_BLOCK:
+            @reflow_break_line_if_inline_x_is_positive(renderer);
+            break;
+        default:
+            break;
+        }
+        if (reflow_debug) {
+            "inline_y is: %d\n", renderer->reflow.inline.y;
+        }
+        node->resolvedHeight = renderer->reflow.inline.y;
+    }
+
+    widget->width = ToI64(node->resolvedPadding.left.value) + node->resolvedWidth + ToI64(node->resolvedPadding.right.value);
+    widget->height = ToI64(node->resolvedPadding.top.value) + node->resolvedHeight + ToI64(node->resolvedPadding.bottom.value);
+}
+
+U0 @reflow_set_widget_as_parent_widget(Widget* widget, HtmlRenderer* renderer)
+{
+    renderer->reflow.parent = widget;
+}
+
+U0 @reflow_set_parent_widget_dimensions(HtmlRenderer* renderer)
+{
+    @reflow_set_widget_dimensions(renderer->reflow.parent, renderer);
+}
+
+U0 @reflow_apply_inline_x_to_bounds(HtmlRenderer* renderer)
+{
+    renderer->reflow.bounds.x1 += renderer->reflow.inline.x;
+}
+
+U0 @reflow_apply_inline_y_to_bounds(HtmlRenderer* renderer)
+{
+    renderer->reflow.bounds.y1 += renderer->reflow.inline.y;
+}
+
+U0 @reflow_apply_inline_to_bounds(HtmlRenderer* renderer)
+{
+    @reflow_apply_inline_x_to_bounds(renderer);
+    @reflow_apply_inline_y_to_bounds(renderer);
+}
+
+U0 @reflow_apply_widget_height_to_inline(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+
+    I32 height = widget->height;
+    height += ToI64(node->resolvedMargin.top.value) + ToI64(node->resolvedMargin.bottom.value);
+    height += ToI64(node->resolvedBorder.top.value) + ToI64(node->resolvedBorder.bottom.value);
+
+    renderer->reflow.inline.y += height;
+    if (reflow_debug) {
+        "margins top/bottom: %d,%d\n", ToI64(node->resolvedMargin.top.value), ToI64(node->resolvedMargin.bottom.value);
+        "borders top/bottom: %d,%d\n", ToI64(node->resolvedBorder.top.value), ToI64(node->resolvedBorder.bottom.value);
+        "widget->height: %d\n", widget->height;
+        "Added height: %d\n", height;
+
+        "current: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+}
+
+U0 @reflow_apply_widget_width_to_inline(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+
+    I32 width = widget->height;
+    width += ToI64(node->resolvedMargin.left.value) + ToI64(node->resolvedMargin.right.value);
+    width += ToI64(node->resolvedBorder.left.value) + ToI64(node->resolvedBorder.right.value);
+
+    renderer->reflow.inline.x += width;
+    if (reflow_debug) {
+        "margins left/right: %d,%d\n", ToI64(node->resolvedMargin.left.value), ToI64(node->resolvedMargin.right.value);
+        "borders left/right: %d,%d\n", ToI64(node->resolvedBorder.left.value), ToI64(node->resolvedBorder.right.value);
+        "widget->width: %d\n", widget->width;
+        "Added width: %d\n", width;
+
+        "current: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+}
+
+U0 @reflow_apply_width_and_height_to_bounds(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    if (node->resolvedWidth) {
+        renderer->reflow.bounds.x2 = renderer->reflow.bounds.x1 + node->resolvedWidth;
+    }
+    if (node->resolvedHeight) {
+        renderer->reflow.bounds.y2 = renderer->reflow.bounds.y1 + node->resolvedHeight;
+    }
+}
+
+U0 @reflow_begin_block(Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    if (reflow_debug) {
+        "begin block: <%s>\n", node->tagName;
+    }
+    @reflow_break_line_if_inline_x_is_positive(renderer);
+    @reflow_push(renderer);
+
+    @reflow_apply_inline_y_to_bounds(renderer);
+    @reflow_reset_inline_position(renderer);
+
+    if (reflow_debug) {
+        "apply inline y and reset: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+
+    @reflow_set_widget_as_parent_widget(widget, renderer);
+    @reflow_apply_margins_to_bounds(widget, renderer);
+    @reflow_position_widget(widget, renderer);
+    @reflow_apply_border_and_padding_to_bounds(widget, renderer);
+    @reflow_apply_width_and_height_to_bounds(widget, renderer);
+}
+
+U0 @reflow_end_block(Widget* widget, HtmlRenderer* renderer)
+{
+    Widget* parent = renderer->reflow.parent;
+    @html_dom_node* node = parent->data;
+    if (reflow_debug) {
+        "end block: </%s>\n", node->tagName;
+    }
+    @reflow_set_parent_widget_dimensions(renderer);
+    @reflow_pop(renderer);
+    @reflow_apply_widget_height_to_inline(parent, renderer);
+
+    if (reflow_debug) {
+        "apply widget height to inline: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+}
+
+U0 @reflow_begin_inline_block(Widget* widget, HtmlRenderer* renderer)
+{
+    //    @reflow_begin_block(widget, renderer);
+
+    @html_dom_node* node = widget->data;
+    if (reflow_debug) {
+        "begin inline-block: <%s>\n", node->tagName;
+    }
+    @reflow_push(renderer);
+
+    @reflow_apply_inline_to_bounds(renderer);
+    @reflow_reset_inline_position(renderer);
+
+    if (reflow_debug) {
+        "apply inline and reset: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+
+    @reflow_set_widget_as_parent_widget(widget, renderer);
+    @reflow_apply_margins_to_bounds(widget, renderer);
+    @reflow_position_widget(widget, renderer);
+    @reflow_apply_border_and_padding_to_bounds(widget, renderer);
+    @reflow_apply_width_and_height_to_bounds(widget, renderer);
+}
+
+U0 @reflow_end_inline_block(Widget* widget, HtmlRenderer* renderer)
+{
+    //    @reflow_end_block(widget, renderer);
+
+    Widget* parent = renderer->reflow.parent;
+    @html_dom_node* node = parent->data;
+    if (reflow_debug) {
+        "end inline-block: </%s>\n", node->tagName;
+    }
+    @reflow_set_parent_widget_dimensions(renderer);
+    @reflow_pop(renderer);
+    @reflow_apply_widget_width_to_inline(parent, renderer);
+
+    if (reflow_debug) {
+        "apply widget width to inline: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
+            renderer->reflow.bounds.x1, renderer->reflow.bounds.y1,
+            renderer->reflow.bounds.x2, renderer->reflow.bounds.y2,
+            renderer->reflow.inline.x, renderer->reflow.inline.y,
+            renderer->reflow.inline.max_line_height;
+    }
+}
+
+U0 @reflow_break_line(HtmlRenderer* renderer)
+{
+    renderer->reflow.inline.x = 0;
+    renderer->reflow.inline.y += renderer->reflow.inline.max_line_height;
+    renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
+}
+
+U0 @reflow_break_line_if_not_enough_horizontal_space(Widget* widget, HtmlRenderer* renderer)
+{
+    I32 resolved_inline_x = renderer->reflow.bounds.x1 + renderer->reflow.inline.x;
+    if (resolved_inline_x > renderer->reflow.bounds.x2 - widget->width) {
+        @reflow_break_line(renderer);
+    }
+}
+
+Bool @reflow_stop_calculating_offset(Widget* widget)
+{
+    @html_dom_node* node = widget->data;
+    return (!node || node->display == CSS_DISPLAY_BLOCK || !StrICmp(node->tagName, "br") || @reflow_widget_has_closing_tag(widget));
+}
+
+I32 @reflow_calculate_text_align_offset(@window_widgets_list* wl, HtmlRenderer* renderer)
+{
+    I32 line_break_width = renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1;
+    I32 offset = wl->widget->width;
+    wl = wl->next;
+    while (wl && wl->widget && offset + wl->widget->width < line_break_width) {
+        if (@reflow_stop_calculating_offset(wl->widget)) {
+            wl = NULL;
+        } else {
+            offset += wl->widget->width;
+            wl = wl->next;
+        }
+    }
+    return offset;
+}
+
+U0 @reflow_handle_inline_text_align(@window_widgets_list* wl, @html_dom_node* node, HtmlRenderer* renderer)
+{
+    if (!node->textAlign)
+        return;
+
+    if (!renderer->reflow.inline.x) {
+        I32 offset_x = @reflow_calculate_text_align_offset(wl, renderer);
+        switch (node->textAlign) {
+        case CSS_TEXT_ALIGN_CENTER:
+            renderer->reflow.inline.x = (((renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1) / 2) - (offset_x / 2));
+            break;
+        case CSS_TEXT_ALIGN_RIGHT:
+            renderer->reflow.inline.x = (renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1) - offset_x;
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+U0 @reflow_inline(@window_widgets_list* wl, Widget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    if (!StrICmp(node->tagName, "br")) {
+        @reflow_break_line(renderer);
+        return;
+    }
+    @reflow_handle_inline_text_align(wl, node, renderer);
+    @reflow_break_line_if_not_enough_horizontal_space(widget, renderer);
+    @reflow_position_widget(widget, renderer);
+
+    renderer->reflow.inline.x += widget->width;
+    renderer->reflow.inline.max_line_height = MaxI64(widget->height, renderer->reflow.inline.max_line_height);
+}
+
+U0 @reflow_set_hyperlink_if_needed(Widget* widget, HtmlRenderer* renderer)
+{
+    if (widget->callback.clicked)
+        return;
+    @html_dom_node* node = widget->data;
+    if (@self_or_ancestor_matches_tag_name(node, "a")) {
+        widget->pointer = renderer->link_pointer;
+        Gui.Widget.SetCallback(widget, "clicked", renderer->link_callback);
+    }
+}
+
+U0 @reflow_node_list(HtmlRenderer* renderer)
+{
+    if (!renderer || !renderer->win || !renderer->widgets_base)
+        return;
+
+    //"Reflow begin\n";
+
+    Widget* widget = NULL;
+    @html_dom_node* node = NULL;
+
+    @window_widgets_list* wl = renderer->widgets_base->next;
+
+    @reflow_update_vertical_scrollbar(renderer);
+    @reflow_set_initial_values(renderer);
+    @reflow_push(renderer);
+
+    while (wl) {
+        if (!wl->widget || !wl->widget->data) {
+            goto reflow_next_wl;
+        }
+
+        widget = wl->widget;
+        node = widget->data;
+
+        if (!@reflow_widget_has_closing_tag(widget)) {
+            @reflow_resolve_dimensions_for_widget(widget);
+            @reflow_set_hyperlink_if_needed(widget, renderer);
+        }
+
+        switch (node->display) {
+        case CSS_DISPLAY_BLOCK:
+            if (@reflow_widget_has_closing_tag(widget)) {
+                @reflow_end_block(widget, renderer);
+            } else {
+                @reflow_begin_block(widget, renderer);
+            }
+            goto reflow_next_wl;
+        case CSS_DISPLAY_INLINE_BLOCK:
+            if (@reflow_widget_has_closing_tag(widget)) {
+                @reflow_end_inline_block(widget, renderer);
+            } else {
+                @reflow_begin_inline_block(widget, renderer);
+            }
+            goto reflow_next_wl;
+        default:
+            @reflow_inline(wl, widget, renderer);
+            break;
+        }
+
+    reflow_next_wl:
+        wl = wl->next;
+    }
+
+    wl = renderer->widgets_base->next;
+    while (wl) {
+        if (wl->widget && wl->widget->data) {
+            node = wl->widget->data;
+            if (!StrICmp(node->tagName, "body")) {
+                renderer->calculated_page_height = node->resolvedHeight;
+                break;
+            }
+        }
+        wl = wl->next;
+    }
+
+    //"Reflow end";
+}
