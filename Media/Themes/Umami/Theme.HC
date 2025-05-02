@@ -1509,6 +1509,7 @@ U0 @umami_window_repaint(Window* win, I64 event)
         title_bar_y = 4;
         title_bar_width = win->width - 8;
 
+        ctx->fill_rect(4, 4, win->width - 8, 16, Color(204, 204, 204, win->opacity));
         if (@gui_window_flag_is_set(win, WIN_FLAGS_ICON)) {
             if (win->icon) {
                 MemCpy(&tmpctx, win->icon, sizeof(Context2D));
