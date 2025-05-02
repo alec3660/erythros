@@ -738,7 +738,7 @@ U0 HLine2D(Context2D* ctx, I64 x, I64 y, I64 x2,
     if (width == 1) {
         Plot2D(ctx, x, y, color);
     } else {
-        MemSetU32(ctx->fb + (y * ctx->width) + x, color, width);
+        MemSetU32(ctx->fb + (y * ctx->width) + min_x, color, width);
     }
 }
 
