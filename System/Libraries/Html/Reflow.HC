@@ -418,6 +418,8 @@ U0 @reflow_begin_block(Widget* widget, HtmlRenderer* renderer)
 U0 @reflow_end_block(Widget* widget, HtmlRenderer* renderer)
 {
     Widget* parent = renderer->reflow.parent;
+    if (!parent)
+        return;
     @html_dom_node* node = parent->data;
     if (reflow_debug) {
         "end block: </%s>\n", node->tagName;
