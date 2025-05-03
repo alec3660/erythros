@@ -17,8 +17,19 @@ U0 @reflow_break_line(HtmlRenderer* renderer)
 
 U0 @reflow_break_line_if_not_enough_horizontal_space(Widget* widget, HtmlRenderer* renderer)
 {
+    if (renderer->reflow.parent) {
+        @html_dom_node* parent_node = renderer->reflow.parent->data;
+        if (parent_node && parent_node->display == CSS_DISPLAY_INLINE_BLOCK && parent_node->widthDistanceType == CSS_DISTANCE_UNDEFINED) {
+            return;
+        }
+    }
+
     I32 combined_x = renderer->reflow.bounds.x1 + renderer->reflow.inline.x;
     if (combined_x > renderer->reflow.bounds.x2 - widget->width) {
+        if (reflow_debug) {
+            "*** not enough horizontal space, breaking line\n";
+            "tag: %s\n", widget->data(@html_dom_node*)->tagName;
+        }
         @reflow_break_line(renderer);
     }
 }
@@ -282,6 +293,9 @@ U0 @reflow_set_widget_dimensions(Widget* widget, HtmlRenderer* renderer)
                 node->resolvedWidth = renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1;
             }
             break;
+        case CSS_DISPLAY_INLINE_BLOCK:
+            node->resolvedWidth = renderer->reflow.inline.x;
+            break;
         default:
             break;
         }
@@ -290,6 +304,7 @@ U0 @reflow_set_widget_dimensions(Widget* widget, HtmlRenderer* renderer)
     if (node->heightDistanceType == CSS_DISTANCE_UNDEFINED) {
         switch (node->display) {
         case CSS_DISPLAY_BLOCK:
+        case CSS_DISPLAY_INLINE_BLOCK:
             @reflow_break_line_if_inline_x_is_positive(renderer);
             break;
         default:
@@ -417,6 +432,7 @@ U0 @reflow_begin_block(Widget* widget, HtmlRenderer* renderer)
 
 U0 @reflow_end_block(Widget* widget, HtmlRenderer* renderer)
 {
+    renderer->calculated_page_height = MaxI64(renderer->calculated_page_height, renderer->reflow.bounds.y1 + renderer->reflow.inline.y);
     Widget* parent = renderer->reflow.parent;
     if (!parent)
         return;
@@ -469,6 +485,7 @@ U0 @reflow_end_inline_block(Widget* widget, HtmlRenderer* renderer)
 {
     //    @reflow_end_block(widget, renderer);
 
+    renderer->calculated_page_height = MaxI64(renderer->calculated_page_height, renderer->reflow.bounds.y1 + renderer->reflow.inline.y);
     Widget* parent = renderer->reflow.parent;
     @html_dom_node* node = parent->data;
     if (reflow_debug) {
@@ -477,6 +494,7 @@ U0 @reflow_end_inline_block(Widget* widget, HtmlRenderer* renderer)
     @reflow_set_parent_widget_dimensions(renderer);
     @reflow_pop(renderer);
     @reflow_apply_widget_width_to_inline(parent, renderer);
+    @reflow_apply_widget_height_to_inline(parent, renderer);
 
     if (reflow_debug) {
         "apply widget width to inline: bounds: %d/%d/%d/%d, inline: %d/%d, max_height: %d\n",
@@ -494,23 +512,27 @@ U0 @reflow_break_line(HtmlRenderer* renderer)
     renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
 }
 
-U0 @reflow_break_line_if_not_enough_horizontal_space(Widget* widget, HtmlRenderer* renderer)
-{
-    I32 resolved_inline_x = renderer->reflow.bounds.x1 + renderer->reflow.inline.x;
-    if (resolved_inline_x > renderer->reflow.bounds.x2 - widget->width) {
-        @reflow_break_line(renderer);
-    }
-}
-
 Bool @reflow_stop_calculating_offset(Widget* widget)
 {
     @html_dom_node* node = widget->data;
+    if (reflow_debug && @reflow_widget_has_closing_tag(widget)) {
+        "stop: widget has closing tag: %s\n", node->tagName;
+    }
     return (!node || node->display == CSS_DISPLAY_BLOCK || !StrICmp(node->tagName, "br") || @reflow_widget_has_closing_tag(widget));
 }
 
 I32 @reflow_calculate_text_align_offset(@window_widgets_list* wl, HtmlRenderer* renderer)
 {
     I32 line_break_width = renderer->reflow.bounds.x2 - renderer->reflow.bounds.x1;
+    if (renderer->reflow.parent) {
+        @html_dom_node* parent_node = renderer->reflow.parent->data;
+        if (parent_node && parent_node->display == CSS_DISPLAY_INLINE_BLOCK && parent_node->widthDistanceType == CSS_DISTANCE_UNDEFINED) {
+            if (reflow_debug) {
+                "set line_break_width to I32_MAX\n";
+            }
+            line_break_width = I32_MAX;
+        }
+    }
     I32 offset = wl->widget->width;
     wl = wl->next;
     while (wl && wl->widget && offset + wl->widget->width < line_break_width) {
@@ -520,6 +542,9 @@ I32 @reflow_calculate_text_align_offset(@window_widgets_list* wl, HtmlRenderer* 
             offset += wl->widget->width;
             wl = wl->next;
         }
+    }
+    if (reflow_debug) {
+        "offset is: %d\n", offset;
     }
     return offset;
 }
@@ -628,7 +653,7 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
         if (wl->widget && wl->widget->data) {
             node = wl->widget->data;
             if (!StrICmp(node->tagName, "body")) {
-                renderer->calculated_page_height = node->resolvedHeight;
+                renderer->calculated_page_height = MaxI64(node->resolvedHeight, renderer->calculated_page_height);
                 break;
             }
         }
