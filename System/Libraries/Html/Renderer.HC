@@ -413,6 +413,33 @@ U0 @set_css_distance(U8* str, F64* value, I64* type)
     }
 }
 
+U0 @set_css_distance_from_attribute(U8* str, F64* value, I64* type)
+{
+    if (!str || !value || !type)
+        return;
+    if (!StrICmp(str, "0")) {
+        *value = 0;
+        *type = CSS_DISTANCE_UNDEFINED;
+        return;
+    }
+    U8 buf[128];
+    StrCpy(buf, str);
+    if (String.EndsWith("em", buf)) {
+        buf[StrLen(buf) - 2] = NULL;
+        *value = Str2F64(buf);
+        *type = CSS_DISTANCE_EM;
+        return;
+    }
+    if (String.EndsWith("%", buf)) {
+        buf[StrLen(buf) - 1] = NULL;
+        *value = Str2F64(buf);
+        *type = CSS_DISTANCE_PERCENT;
+        return;
+    }
+    *value = Str2F64(str);
+    *type = CSS_DISTANCE_PIXELS;
+}
+
 U0 @set_css_border_style(U8* str, I64* style)
 {
     I64 i;
@@ -1650,6 +1677,14 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
             node->textAlign = CSS_TEXT_ALIGN_CENTER;
         if (!StrICmp(node->attributes->@("align"), "right"))
             node->textAlign = CSS_TEXT_ALIGN_RIGHT;
+    }
+
+    if (node->attributes->@("width") && node->widthDistanceType == CSS_DISTANCE_UNDEFINED) {
+        @set_css_distance_from_attribute(node->attributes->@("width"), &node->width, &node->widthDistanceType);
+    }
+
+    if (node->attributes->@("height") && node->heightDistanceType == CSS_DISTANCE_UNDEFINED) {
+        @set_css_distance_from_attribute(node->attributes->@("height"), &node->height, &node->heightDistanceType);
     }
 
     if (!StrICmp(node->tagName, "center"))
