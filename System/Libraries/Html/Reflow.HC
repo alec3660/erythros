@@ -60,12 +60,24 @@ U0 @reflow_resolve_css_side(@html_dom_node* node, @css_side* parent_resolved_sid
     }
 }
 
-U0 @reflow_resolve_dynamic_margins(@html_dom_node* node)
+U0 @reflow_collapse_margin_top(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    if (!node->display == CSS_DISPLAY_BLOCK) {
+        return;
+    }
+    @html_dom_node* prev_node = renderer->reflow_previous_node;
+    if (prev_node && prev_node->resolvedMargin.bottom.value > 0 && node->resolvedMargin.top.value > 0) {
+        node->resolvedMargin.top.value = MaxI64(0, ToI64(node->resolvedMargin.top.value - prev_node->resolvedMargin.bottom.value));
+    }
+}
+
+U0 @reflow_resolve_dynamic_margins(@html_dom_node* node, HtmlRenderer* renderer)
 {
     @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.top, &node->resolvedMargin.top, &node->margin.top);
     @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.right, &node->resolvedMargin.right, &node->margin.right);
     @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.bottom, &node->resolvedMargin.bottom, &node->margin.bottom);
     @reflow_resolve_css_side(node, &node->parentNode->resolvedMargin.left, &node->resolvedMargin.left, &node->margin.left);
+    @reflow_collapse_margin_top(node, renderer);
 }
 
 U0 @reflow_resolve_dynamic_borders(@html_dom_node* node)
@@ -104,7 +116,7 @@ U0 @reflow_resolve_dynamic_width_and_height(@html_dom_node* node)
     node->resolvedHeight = @reflow_resolve_css_distance(node->parentNode->height, node->height, node->heightDistanceType);
 }
 
-U0 @reflow_resolve_dimensions_for_widget(Widget* widget)
+U0 @reflow_resolve_dimensions_for_widget(Widget* widget, HtmlRenderer* renderer)
 {
     @html_dom_node* node = widget->data;
 
@@ -136,7 +148,7 @@ U0 @reflow_resolve_dimensions_for_widget(Widget* widget)
     }
 
     @reflow_resolve_dynamic_width_and_height(node);
-    @reflow_resolve_dynamic_margins(node);
+    @reflow_resolve_dynamic_margins(node, renderer);
     @reflow_resolve_dynamic_borders(node);
     @reflow_resolve_dynamic_padding(node);
 }
@@ -185,6 +197,7 @@ U0 @reflow_set_initial_values(HtmlRenderer* renderer)
     renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
     renderer->reflow.parent = NULL;
     renderer->reflow_index = -1;
+    renderer->reflow_previous_node = NULL;
 }
 
 U0 @reflow_update_vertical_scrollbar(HtmlRenderer* renderer)
@@ -280,6 +293,16 @@ U0 @reflow_reset_inline_position(HtmlRenderer* renderer)
 {
     renderer->reflow.inline.x = 0;
     renderer->reflow.inline.y = 0;
+}
+
+U0 @reflow_set_previous_node(@html_dom_node* node, HtmlRenderer* renderer)
+{
+    renderer->reflow_previous_node = node;
+}
+
+U0 @reflow_clear_previous_node(HtmlRenderer* renderer)
+{
+    renderer->reflow_previous_node = NULL;
 }
 
 U0 @reflow_set_widget_dimensions(Widget* widget, HtmlRenderer* renderer)
@@ -428,6 +451,7 @@ U0 @reflow_begin_block(Widget* widget, HtmlRenderer* renderer)
     @reflow_position_widget(widget, renderer);
     @reflow_apply_border_and_padding_to_bounds(widget, renderer);
     @reflow_apply_width_and_height_to_bounds(widget, renderer);
+    @reflow_clear_previous_node(renderer);
 }
 
 U0 @reflow_end_block(Widget* widget, HtmlRenderer* renderer)
@@ -451,6 +475,7 @@ U0 @reflow_end_block(Widget* widget, HtmlRenderer* renderer)
             renderer->reflow.inline.x, renderer->reflow.inline.y,
             renderer->reflow.inline.max_line_height;
     }
+    @reflow_set_previous_node(node, renderer);
 }
 
 U0 @reflow_begin_inline_block(Widget* widget, HtmlRenderer* renderer)
@@ -479,6 +504,7 @@ U0 @reflow_begin_inline_block(Widget* widget, HtmlRenderer* renderer)
     @reflow_position_widget(widget, renderer);
     @reflow_apply_border_and_padding_to_bounds(widget, renderer);
     @reflow_apply_width_and_height_to_bounds(widget, renderer);
+    @reflow_clear_previous_node(renderer);
 }
 
 U0 @reflow_end_inline_block(Widget* widget, HtmlRenderer* renderer)
@@ -503,6 +529,7 @@ U0 @reflow_end_inline_block(Widget* widget, HtmlRenderer* renderer)
             renderer->reflow.inline.x, renderer->reflow.inline.y,
             renderer->reflow.inline.max_line_height;
     }
+    @reflow_clear_previous_node(renderer);
 }
 
 U0 @reflow_break_line(HtmlRenderer* renderer)
@@ -582,6 +609,7 @@ U0 @reflow_inline(@window_widgets_list* wl, Widget* widget, HtmlRenderer* render
 
     renderer->reflow.inline.x += widget->width;
     renderer->reflow.inline.max_line_height = MaxI64(widget->height, renderer->reflow.inline.max_line_height);
+    @reflow_clear_previous_node(renderer);
 }
 
 U0 @reflow_set_hyperlink_if_needed(Widget* widget, HtmlRenderer* renderer)
@@ -620,7 +648,7 @@ U0 @reflow_node_list(HtmlRenderer* renderer)
         node = widget->data;
 
         if (!@reflow_widget_has_closing_tag(widget)) {
-            @reflow_resolve_dimensions_for_widget(widget);
+            @reflow_resolve_dimensions_for_widget(widget, renderer);
             @reflow_set_hyperlink_if_needed(widget, renderer);
         }
 

@@ -110,6 +110,7 @@ class @html_renderer
     U64 link_callback;
     U64 form_submit_callback;
     U64 (*image_load_callback)(U64);
+    @html_dom_node* reflow_previous_node;
     @renderer_reflow reflow_stack[128];
     @renderer_reflow reflow;
     I64 reflow_index;
