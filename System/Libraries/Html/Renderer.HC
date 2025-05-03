@@ -1694,6 +1694,10 @@ U0 @handle_tag_specific_functions(@html_dom_node* node, HtmlRenderer* renderer)
         }
     }
 
+    if (!StrICmp(node->tagName, "small")) {
+        node->fontSize = ToI64(0.83 * node->fontSize);
+    }
+
     if (!StrICmp(node->tagName, "strike")) {
         node->linethroughColor = node->color;
     }
