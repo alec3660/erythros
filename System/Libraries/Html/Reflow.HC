@@ -116,21 +116,173 @@ U0 @reflow_resolve_dynamic_width_and_height(@html_dom_node* node)
     node->resolvedHeight = @reflow_resolve_css_distance(node->parentNode->height, node->height, node->heightDistanceType);
 }
 
+U0 @reflow_set_image_widget_dimensions_from_base(Context2DWidget* widget)
+{
+    @html_dom_node* node = widget->data;
+    widget->width = node->resolvedWidth = node->width = widget->base->width;
+    widget->height = node->resolvedHeight = node->height = widget->base->height;
+    node->widthDistanceType = CSS_DISTANCE_PIXELS;
+    node->heightDistanceType = CSS_DISTANCE_PIXELS;
+}
+
+U0 @reflow_set_image_widget_dimensions_from_context(Context2DWidget* widget)
+{
+    @html_dom_node* node = widget->data;
+    widget->width = node->resolvedWidth = node->width = widget->ctx->width;
+    widget->height = node->resolvedHeight = node->height = widget->ctx->height;
+    node->widthDistanceType = CSS_DISTANCE_PIXELS;
+    node->heightDistanceType = CSS_DISTANCE_PIXELS;
+}
+
+Bool @reflow_image_size_will_not_change(Context2DWidget* widget)
+{
+    @html_dom_node* node = widget->data;
+    return (node->resolvedWidth && node->resolvedHeight && widget->width == node->resolvedWidth && widget->height == node->resolvedHeight);
+}
+
+// renderer->reflow.parent->width, renderer->reflow.parent->height;
+
+U0 @reflow_set_image_widget_dimensions_from_node_width_and_height(Context2DWidget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    F64 scale_x = 0;
+    F64 scale_y = 0;
+
+    switch (node->widthDistanceType) {
+    case CSS_DISTANCE_PIXELS:
+        scale_x = node->width / ToF64(widget->base->width);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        scale_x = (ToF64(renderer->reflow.parent->width * (node->width / 100.0)) / ToF64(widget->base->width));
+        return;
+    default:
+        break;
+    }
+
+    switch (node->heightDistanceType) {
+    case CSS_DISTANCE_PIXELS:
+        scale_y = node->height / ToF64(widget->base->height);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        scale_y = (ToF64(renderer->reflow.parent->height * (node->height / 100.0)) / ToF64(widget->base->height));
+        return;
+    default:
+        break;
+    }
+
+    if (scale_x == 0.0 && scale_y == 0.0) {
+        // Something went wrong, or unsupported distance type, use default values
+        @reflow_set_image_widget_dimensions_from_base(widget);
+    }
+
+    if (scale_x == 1.0 && scale_y == 1.0) {
+        // We are the same aspect ratio, use default values
+        @reflow_set_image_widget_dimensions_from_base(widget);
+    }
+
+    widget->ctx = Scale2D(widget->base, scale_x, scale_y);
+    @reflow_set_image_widget_dimensions_from_context(widget);
+}
+
+U0 @reflow_set_image_widget_dimensions_from_node_width(Context2DWidget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    F64 scale = 0;
+    switch (node->widthDistanceType) {
+    case CSS_DISTANCE_PIXELS:
+        // If node width matches image width, set the values to the width and height of the image
+        if (ToI64(node->width) == widget->base->width) {
+            @reflow_set_image_widget_dimensions_from_base(widget);
+            return;
+        }
+        scale = node->width / ToF64(widget->base->width);
+        widget->ctx = Scale2D(widget->base, scale, scale);
+        @reflow_set_image_widget_dimensions_from_context(widget);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        if (!renderer->reflow.parent->width)
+            return;
+        scale = (ToF64(renderer->reflow.parent->width * (node->width / 100.0)) / ToF64(widget->base->width));
+        widget->ctx = Scale2D(widget->base, scale, scale);
+        @reflow_set_image_widget_dimensions_from_context(widget);
+        return;
+    default:
+        break;
+    }
+}
+
+U0 @reflow_set_image_widget_dimensions_from_node_height(Context2DWidget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+    F64 scale = 0;
+    switch (node->heightDistanceType) {
+    case CSS_DISTANCE_PIXELS:
+        // If node width matches image height, set the values to the width and height of the image
+        if (ToI64(node->height) == widget->base->height) {
+            @reflow_set_image_widget_dimensions_from_base(widget);
+            return;
+        }
+        scale = node->height / ToF64(widget->base->height);
+        widget->ctx = Scale2D(widget->base, scale, scale);
+        @reflow_set_image_widget_dimensions_from_context(widget);
+        break;
+    case CSS_DISTANCE_PERCENT:
+        if (!renderer->reflow.parent->height)
+            return;
+        scale = (ToF64(renderer->reflow.parent->height * (node->height / 100.0)) / ToF64(widget->base->height));
+        widget->ctx = Scale2D(widget->base, scale, scale);
+        @reflow_set_image_widget_dimensions_from_context(widget);
+        return;
+    default:
+        break;
+    }
+}
+
+U0 @reflow_resolve_image_resizing(Context2DWidget* widget, HtmlRenderer* renderer)
+{
+    @html_dom_node* node = widget->data;
+
+    if (!widget->base || !widget->base->width || !widget->base->height)
+        return;
+
+    if (@reflow_image_size_will_not_change(widget))
+        return;
+
+    // If node width and height are both zero, set their values to the width and height of the image
+    if (!ToI64(node->width) && !ToI64(node->height)) {
+        @reflow_set_image_widget_dimensions_from_base(widget);
+        return;
+    }
+
+    // If the node width and height are both undefined type, set their values to the width and height of the image
+    if (!node->widthDistanceType && !node->heightDistanceType) {
+        @reflow_set_image_widget_dimensions_from_base(widget);
+        return;
+    }
+
+    if (node->widthDistanceType && node->heightDistanceType) {
+        @reflow_set_image_widget_dimensions_from_node_width_and_height(widget, renderer);
+        return;
+    }
+
+    if (node->widthDistanceType && !node->heightDistanceType) {
+        @reflow_set_image_widget_dimensions_from_node_width(widget, renderer);
+        return;
+    }
+
+    if (!node->widthDistanceType && node->heightDistanceType) {
+        @reflow_set_image_widget_dimensions_from_node_height(widget, renderer);
+        return;
+    }
+}
+
 U0 @reflow_resolve_dimensions_for_widget(Widget* widget, HtmlRenderer* renderer)
 {
     @html_dom_node* node = widget->data;
 
-    // FIXME: Handle dynamic width/height for images
-    if (!StrICmp(node->tagName, "img") && (!widget->width || !widget->height)) {
-        if (widget->type == WIDGET_TYPE_CONTEXT2D && widget(Context2DWidget*)->ctx) {
-            node->width = widget(Context2DWidget*)->ctx->width;
-            node->widthDistanceType = CSS_DISTANCE_PIXELS;
-            node->height = widget(Context2DWidget*)->ctx->height;
-            node->heightDistanceType = CSS_DISTANCE_PIXELS;
-            widget->width = node->resolvedWidth = node->width;
-            widget->height = node->resolvedHeight = node->height;
-            return;
-        }
+    if (node && !StrICmp(node->tagName, "img") && widget->type == WIDGET_TYPE_CONTEXT2D) {
+        @reflow_resolve_image_resizing(widget, renderer);
+        return;
     }
 
     // set a random bgcolor for the widget, so we can tell what is what during debugging
