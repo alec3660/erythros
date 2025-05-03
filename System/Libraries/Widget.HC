@@ -58,6 +58,7 @@ class MenuItemWidget : Widget {
 class Context2DWidget : Widget {
     Bool fast_copy;
     Context2D* ctx;
+    Context2D* base;
 };
 
 class CheckBoxWidget : Widget {
