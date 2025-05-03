@@ -914,6 +914,7 @@ U0 @tokenizer_html_state_attribute_value_unquoted(@html_tokenizer* t)
     case '\t':
     case ' ':
         // Switch to the before attribute name state.
+        @set_current_attribute_on_current_node(t);
         t->state = HTML_STATE_BEFORE_ATTRIBUTE_NAME;
         break;
     /*
