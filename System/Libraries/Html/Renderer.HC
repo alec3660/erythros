@@ -2169,6 +2169,7 @@ U0 @fetch_images_for_page(HtmlRenderer* renderer)
 
         // FIXME: Wire up animated GIF handling
         widget->ctx = @image_buffer_to_context2d(resp->body.data, resp->body.length);
+        widget->base = widget->ctx;
         if (widget->ctx) {
             widget->width = widget->ctx->width;
             widget->height = widget->ctx->height;
