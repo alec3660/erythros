@@ -1375,7 +1375,7 @@ U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
             case NULL:
                 break;
             case WIDGET_TYPE_BORDERED_RECT:
-                if (widget->width && widget->height)
+                if ((widget->width && widget->height) || (widget(BorderedRectWidget*)->top.size && widget(BorderedRectWidget*)->bottom.size))
                     @umami_bordered_rect_repaint(win, widget, x, y);
                 break;
             case WIDGET_TYPE_RECT:
