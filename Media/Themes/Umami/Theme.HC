@@ -38,6 +38,11 @@ Context2D* umami_widget_sb_left_button =
 Context2D* umami_widget_sb_right_button =
     @image_file_to_context2d("M:/Media/Themes/Umami/Widget/sb_right_button.png");
 
+Context2D* umami_widget_submenu_arrow =
+    @image_file_to_context2d("M:/Media/Themes/Umami/Widget/submenu_arrow.png");
+Context2D* umami_widget_submenu_arrow_hover =
+    @image_file_to_context2d("M:/Media/Themes/Umami/Widget/submenu_arrow_hover.png");
+
 U0 @umami_button_repaint(Window* win, ButtonWidget* widget, I64 x, I64 y)
 {
     Context2D* ctx = win->render_ctx;
@@ -923,10 +928,12 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
     I64 text_y = 4 + (widget->height / 2) - (16 / 2);
     I64 icon_x = 4;
     I64 icon_y = 0;
+    I64 arrow_y = 4 + (widget->height / 2) - (umami_widget_submenu_arrow->height / 2) - 3;
+    Bool widget_is_hovered = @widget_is_hovered(win->x + x, win->y + y, widget);
     if (widget->icon) {
         icon_y = 4 + (widget->height / 2) - (widget->icon->height / 2) - 3;
     }
-    if (@widget_is_hovered(win->x + x, win->y + y, widget)) {
+    if (widget_is_hovered) {
         ctx->fill_rect(x, y, widget->width, widget->height,
             Compositor.theme.color.hilight);
         text_color = Color(255, 255, 255);
@@ -948,6 +955,10 @@ U0 @umami_menu_item_repaint(Window* win, MenuItemWidget* widget, I64 x, I64 y)
     if (widget->icon) {
         ctx->blot(x + icon_x, y + icon_y, widget->icon);
         text_x += 20;
+    }
+    if (widget->submenu) {
+        ctx->blot(x + widget->width - 8 - umami_widget_submenu_arrow->width, y + arrow_y,
+            T(widget_is_hovered, umami_widget_submenu_arrow_hover, umami_widget_submenu_arrow));
     }
     if (widget->text)
         PutS2D(win->render_ctx, widget->font, x + text_x, y + text_y,
