@@ -96,15 +96,43 @@ U0 @reflow_resolve_dynamic_padding(@html_dom_node* node)
     @reflow_resolve_css_side(node, &node->parentNode->resolvedPadding.left, &node->resolvedPadding.left, &node->padding.left);
 }
 
-I64 @reflow_resolve_css_distance(F64 parent_distance, F64 distance, I64 type)
+I64 @reflow_resolve_css_width_for_node(@html_dom_node* node)
 {
-    switch (type) {
+    I64 resolved_width = 0;
+    switch (node->widthDistanceType) {
+    case CSS_DISTANCE_AUTO:
+        while (!resolved_width) {
+            node = node->parentNode;
+            resolved_width = node->resolvedWidth;
+        }
+        return resolved_width;
     case CSS_DISTANCE_PIXELS:
-        return ToI64(distance);
+        return ToI64(node->width);
     case CSS_DISTANCE_EM:
-        return ToI64(distance * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+        return ToI64(node->width * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
     case CSS_DISTANCE_PERCENT:
-        return ToI64(parent_distance * (100 / distance));
+        return ToI64(node->parentNode->resolvedWidth * (100 / node->width));
+    default:
+        return 0;
+    }
+}
+
+I64 @reflow_resolve_css_height_for_node(@html_dom_node* node)
+{
+    I64 resolved_height = 0;
+    switch (node->heightDistanceType) {
+    case CSS_DISTANCE_AUTO:
+        while (!resolved_height) {
+            node = node->parentNode;
+            resolved_height = node->resolvedHeight;
+        }
+        return resolved_height;
+    case CSS_DISTANCE_PIXELS:
+        return ToI64(node->height);
+    case CSS_DISTANCE_EM:
+        return ToI64(node->height * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+    case CSS_DISTANCE_PERCENT:
+        return ToI64(node->parentNode->resolvedHeight * (100 / node->height));
     default:
         return 0;
     }
@@ -112,8 +140,8 @@ I64 @reflow_resolve_css_distance(F64 parent_distance, F64 distance, I64 type)
 
 U0 @reflow_resolve_dynamic_width_and_height(@html_dom_node* node)
 {
-    node->resolvedWidth = @reflow_resolve_css_distance(node->parentNode->width, node->width, node->widthDistanceType);
-    node->resolvedHeight = @reflow_resolve_css_distance(node->parentNode->height, node->height, node->heightDistanceType);
+    node->resolvedWidth = @reflow_resolve_css_width_for_node(node);
+    node->resolvedHeight = @reflow_resolve_css_height_for_node(node);
 }
 
 U0 @reflow_set_image_widget_dimensions_from_base(Context2DWidget* widget)
