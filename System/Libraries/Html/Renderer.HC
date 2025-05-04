@@ -1596,6 +1596,7 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
     stream[i] = NULL;
     fragment_base = i + 1;
 
+    I64 baseline;
     I64 text_width;
     Context2DWidget* fragment_widget;
 
@@ -1618,8 +1619,10 @@ U0 @render_node_text(@html_dom_node* node, HtmlRenderer* renderer)
                 }
 
                 if (node->parentNode->underlineColor) {
-                    if (underline_y_pos < 0)
-                        underline_y_pos = @get_truetype_baseline(font_name, node->parentNode->fontSize) + 3;
+                    if (underline_y_pos < 0) {
+                        baseline = ToF64(@get_truetype_baseline(font_name, node->parentNode->fontSize));
+                        underline_y_pos = ToI64(baseline + ((ToF64(fragment_widget->ctx->height) - baseline) / 3));
+                    }
                     if (!(underline_y_pos < 0)) {
                         fragment_widget->ctx->line(0, underline_y_pos, fragment_widget->ctx->width - 1, underline_y_pos, node->parentNode->color);
                     }
