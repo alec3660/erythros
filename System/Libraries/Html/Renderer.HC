@@ -571,7 +571,7 @@ U0 @css_resolve_border_width(@html_dom_node* node, JsonArray* values)
     }
 }
 
-U0 @css_resolve_border(@html_dom_node* node, JsonArray* values)
+U0 @css_resolve_borders(@html_dom_node* node, JsonArray* values)
 {
     if (!node || !values || !values->length)
         return;
@@ -600,6 +600,52 @@ U0 @css_resolve_border(@html_dom_node* node, JsonArray* values)
         @css_resolve_color(values->@(2), &node->border.rightColor);
         @css_resolve_color(values->@(2), &node->border.bottomColor);
         @css_resolve_color(values->@(2), &node->border.leftColor);
+        break;
+    default:
+        break;
+    }
+}
+
+U0 @css_resolve_border_side(@html_dom_node* node, JsonArray* values, @css_side* side, I64* style, U32* color)
+{
+    if (!node || !values || !values->length)
+        return;
+    switch (values->length) {
+    case 1:
+        // style
+        @set_css_border_style(values->@(0), style);
+        break;
+    case 2:
+        // determine if each value is width, style, or color
+        break;
+    case 3:
+        // width, style, color
+        @set_css_border_width(values->@(0), side, &side->type);
+        @set_css_border_style(values->@(1), style);
+        @css_resolve_color(values->@(2), color);
+        break;
+    default:
+        break;
+    }
+}
+
+U0 @css_resolve_border(@html_dom_node* node, JsonArray* values, I64 side = CSS_SIDE_UNDEFINED)
+{
+    switch (side) {
+    case CSS_SIDE_UNDEFINED:
+        @css_resolve_borders(node, values);
+        break;
+    case CSS_SIDE_TOP:
+        @css_resolve_border_side(node, values, &node->border.top, &node->border.topStyle, &node->border.topColor);
+        break;
+    case CSS_SIDE_RIGHT:
+        @css_resolve_border_side(node, values, &node->border.right, &node->border.rightStyle, &node->border.rightColor);
+        break;
+    case CSS_SIDE_BOTTOM:
+        @css_resolve_border_side(node, values, &node->border.bottom, &node->border.bottomStyle, &node->border.bottomColor);
+        break;
+    case CSS_SIDE_LEFT:
+        @css_resolve_border_side(node, values, &node->border.left, &node->border.leftStyle, &node->border.leftColor);
         break;
     default:
         break;
@@ -713,6 +759,22 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
 
         if (!StrICmp(key->name, "border")) {
             @css_resolve_border(node, values);
+        }
+
+        if (!StrICmp(key->name, "border-top")) {
+            @css_resolve_border(node, values, CSS_SIDE_TOP);
+        }
+
+        if (!StrICmp(key->name, "border-right")) {
+            @css_resolve_border(node, values, CSS_SIDE_RIGHT);
+        }
+
+        if (!StrICmp(key->name, "border-bottom")) {
+            @css_resolve_border(node, values, CSS_SIDE_BOTTOM);
+        }
+
+        if (!StrICmp(key->name, "border-left")) {
+            @css_resolve_border(node, values, CSS_SIDE_LEFT);
         }
 
         if (!StrICmp(key->name, "border-color")) {
