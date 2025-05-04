@@ -143,7 +143,7 @@ U0 @systemstarter_startup()
     Spawn(SystemTray.Task, , "SystemTray", T(mp_cnt > 3, 2, 1));
 
     SystemStarter.Spawn("M:/Applications/OS/Wallpaper.app", "Wallpaper");
-    SystemStarter.Spawn("M:/Applications/OS/MenuBar.app", "MenuBar");
+    SystemStarter.Spawn("M:/Applications/OS/AppBar.app", "AppBar");
     SystemStarter.Spawn("M:/Applications/OS/TaskSwitcher.app",
         "TaskSwitcher");
 

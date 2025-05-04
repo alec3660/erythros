@@ -70,7 +70,7 @@ U0 Main()
 {
     Window* win = Compositor.CreateWindow(0, 0, Display.Width(), 32,
         WIN_FLAGS_NOHILIGHT | WIN_FLAGS_SKIP);
-    Gui.Window.SetTitle(win, "MenuBar");
+    Gui.Window.SetTitle(win, "AppBar");
 
     ButtonWidget* system_menu_btn = Gui.CreateWidget(win, WIDGET_TYPE_BUTTON, 0, 0, 58, 24);
     Gui.Widget.SetText(system_menu_btn, "");
