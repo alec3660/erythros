@@ -1954,7 +1954,7 @@ U0 @process_css_rules_from_external_stylesheet(HtmlRenderer* renderer, U8* str)
     // download (or load from cache) and process stylesheet
     if (!renderer || !str)
         return;
-    U8 status_text_buffer[128];
+    U8 status_text_buffer[HTML_WORK_BUFFER_SIZE];
     U8 buf[HTML_WORK_BUFFER_SIZE];
     HttpUrl* url = @expand_url_from_string(renderer->task, renderer->current_url, str);
     if (!url)
@@ -2062,7 +2062,7 @@ Context2D* @favicon_for_page(HtmlRenderer* renderer)
     if (!renderer)
         return DEFAULT_FAVICON;
 
-    U8 status_text_buffer[128];
+    U8 status_text_buffer[HTML_WORK_BUFFER_SIZE];
     U8 buf[HTML_WORK_BUFFER_SIZE];
     HttpUrl* url;
     Context2DWidget* widget;
@@ -2174,7 +2174,7 @@ U0 @fetch_images_for_page(HtmlRenderer* renderer)
         return;
     }
 
-    U8 status_text_buffer[128];
+    U8 status_text_buffer[HTML_WORK_BUFFER_SIZE];
     U8 buf[HTML_WORK_BUFFER_SIZE];
     HttpUrl* url;
     Context2DWidget* widget;
