@@ -19,6 +19,7 @@
 #define WIDGET_TYPE_LISTVIEW 15
 #define WIDGET_TYPE_RECT 20
 #define WIDGET_TYPE_BORDERED_RECT 21
+#define WIDGET_TYPE_TAB_PANEL 22
 
 #define TERMINAL_MAX_COLS 1920 / 8
 
@@ -243,6 +244,19 @@ class ListViewWidget : Widget {
     BitmapFont* font;
     U32 color;
     @list_view_item* items;
+};
+
+class TabPanelTab {
+    TabPanelTab* prev;
+    TabPanelTab* next;
+    U8 text[128];
+    @window_widgets_list* widgets_list;
+};
+
+class TabPanelWidget : Widget {
+    TabPanelTab* tabs;
+    I64 index;
+    I64 count;
 };
 
 U0 @gui_widget_set_echo(Widget* widget, U8* echo)
@@ -668,6 +682,9 @@ Widget* @widget_create_widget(Window* win, I64 type, I64 x, I64 y, I64 width,
     case WIDGET_TYPE_LISTVIEW:
         size_of_widget = sizeof(ListViewWidget) * 2;
         goto @widget_create_set_values;
+    case WIDGET_TYPE_TAB_PANEL:
+        size_of_widget = sizeof(TabPanelWidget) * 2;
+        goto @widget_create_set_values;
     case WIDGET_TYPE_MENU_ITEM:
         size_of_widget = sizeof(MenuItemWidget) * 2;
         goto @widget_create_set_values;
@@ -772,6 +789,9 @@ U0 @widget_init_widget(Widget* widget, Window* win, I64 type, I64 x, I64 y,
         break;
     case WIDGET_TYPE_LISTVIEW:
         size_of_widget = sizeof(ListViewWidget);
+        break;
+    case WIDGET_TYPE_TAB_PANEL:
+        size_of_widget = sizeof(TabPanelWidget);
         break;
     case WIDGET_TYPE_MENU_ITEM:
         size_of_widget = sizeof(MenuItemWidget);
