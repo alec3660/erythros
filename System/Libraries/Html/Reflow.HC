@@ -140,8 +140,6 @@ Bool @reflow_image_size_will_not_change(Context2DWidget* widget)
     return (node->resolvedWidth && node->resolvedHeight && widget->width == node->resolvedWidth && widget->height == node->resolvedHeight);
 }
 
-// renderer->reflow.parent->width, renderer->reflow.parent->height;
-
 U0 @reflow_set_image_widget_dimensions_from_node_width_and_height(Context2DWidget* widget, HtmlRenderer* renderer)
 {
     @html_dom_node* node = widget->data;
@@ -748,6 +746,16 @@ U0 @reflow_handle_inline_text_align(@window_widgets_list* wl, @html_dom_node* no
     }
 }
 
+U0 @reflow_inherit_outer_bounds_if_zero_width(HtmlRenderer* renderer)
+{
+    I64 i = renderer->reflow_index - 1;
+    if (renderer->reflow.bounds.x2 == renderer->reflow.bounds.x1) {
+        renderer->reflow.parent->x = renderer->reflow_stack[i].bounds.x1;
+        renderer->reflow.bounds.x2 = renderer->reflow_stack[i].bounds.x2;
+        renderer->reflow.bounds.x1 = renderer->reflow_stack[i].bounds.x1;
+    }
+}
+
 U0 @reflow_inline(@window_widgets_list* wl, Widget* widget, HtmlRenderer* renderer)
 {
     @html_dom_node* node = widget->data;
@@ -755,8 +763,26 @@ U0 @reflow_inline(@window_widgets_list* wl, Widget* widget, HtmlRenderer* render
         @reflow_break_line(renderer);
         return;
     }
+
+    // FIXME: This terrible hack does the following:
+
+    // - Inherit the parent (outer) block's bounds if our x1/x2 bounds are equal.
+    // - Retry the reflow if we end up doing a line break.
+
+    // Without this hack, we end up line breaking after every text fragment
+    // if the containing block width is undefined and has auto margins or
+    // text-align: center.
+
+    @reflow_inherit_outer_bounds_if_zero_width(renderer);
+
+    Bool continuing_reflow_inline_with_text_align = FALSE;
+continue_reflow_inline_with_text_align:
     @reflow_handle_inline_text_align(wl, node, renderer);
     @reflow_break_line_if_not_enough_horizontal_space(widget, renderer);
+    if (!renderer->reflow.inline.x && node->textAlign && !continuing_reflow_inline_with_text_align) {
+        continuing_reflow_inline_with_text_align = TRUE;
+        goto continue_reflow_inline_with_text_align;
+    }
     @reflow_position_widget(widget, renderer);
 
     renderer->reflow.inline.x += widget->width;
