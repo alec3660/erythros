@@ -9,7 +9,7 @@ I64 @menu_get_items_count(Window* win)
     @window_widgets_list* wl = win->widget;
     while (wl) {
         if (wl->widget) {
-            if (wl->widget->type == WIDGET_TYPE_MENU_ITEM)
+            if (wl->widget->type == WIDGET_TYPE_MENU_ITEM || wl->widget->type == WIDGET_TYPE_BORDERED_RECT)
                 count++;
         }
         wl = wl->next;
@@ -39,6 +39,22 @@ MenuItemWidget* @menu_add_item(Window* win, U8* text, Context2D* icon,
     return item;
 }
 
+BorderedRectWidget* @menu_add_separator(Window* win)
+{
+    I64 items_count = @menu_get_items_count(win);
+    win->height = 8;
+    win->height += MENU_ITEM_MIN_HEIGHT * (items_count + 1);
+    BorderedRectWidget* separator = Gui.CreateWidget(
+        win, WIDGET_TYPE_BORDERED_RECT, 0, MENU_ITEM_MIN_HEIGHT * items_count,
+        MENU_ITEM_MIN_WIDTH, 0);
+    separator->y += (MENU_ITEM_MIN_HEIGHT / 2) - 2;
+    separator->top.size = 1;
+    separator->top.color = Color(128, 128, 128);
+    separator->bottom.size = 1;
+    separator->bottom.color = Color(255, 255, 255);
+    return separator;
+}
+
 Window* @menu_new(U8* title = NULL)
 {
     Window* menu = Compositor.CreateWindow(
@@ -57,11 +73,13 @@ class @menu
     MenuItemWidget* (*AddItem)(Window* win, U8* text, Context2D* icon,
         U64 callback, U8* path = NULL,
         Window* submenu = NULL);
+    BorderedRectWidget* (*AddSeparator)(Window* win);
     Window* (*New)(U8* title);
 };
 
 @menu Menu;
 Menu.AddItem = &@menu_add_item;
+Menu.AddSeparator = &@menu_add_separator;
 Menu.New = &@menu_new;
 
 "menu ";
