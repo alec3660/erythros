@@ -1,10 +1,10 @@
 JsonObject* cyberia = Json.CreateObject(Fs);
 
 Window* win = NULL;
-Context2DWidget* controlsbackdrop1 = NULL;
+RectWidget* controlsbackdrop1 = NULL;
 TextLabelWidget* status1 = NULL;
 TextLabelWidget* status2 = NULL;
-Context2DWidget* statusbackdrop1 = NULL;
+RectWidget* statusbackdrop1 = NULL;
 VerticalScrollBarWidget* vscroll1 = NULL;
 
 U8* previous_hovered_href = NULL;
@@ -673,12 +673,12 @@ U0 @cyberia_init()
     background1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, 0, 36, 0, 0);
     background1->color = Color(255, 255, 255);
 
-    controlsbackdrop1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, -14, 0, 0, 0);
+    controlsbackdrop1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, -14, 0, Display.Width(), 36 + 14);
     controlsbackdrop1->y = -14;
-    controlsbackdrop1->ctx = NewContext2D(Display.Width(), 36 + 14)->fill(Color(204, 204, 204));
+    controlsbackdrop1->color = Color(204, 204, 204);
 
-    statusbackdrop1 = Gui.CreateWidget(win, WIDGET_TYPE_CONTEXT2D, 0, 0, Display.Width(), 48);
-    statusbackdrop1->ctx = NewContext2D(Display.Width(), 48)->fill(Color(204, 204, 204));
+    statusbackdrop1 = Gui.CreateWidget(win, WIDGET_TYPE_RECT, 0, 0, Display.Width(), 48);
+    statusbackdrop1->color = Color(204, 204, 204);
 
     status1 = Gui.CreateWidget(win, WIDGET_TYPE_LABEL, 0, 0, 320, 16);
     Gui.Widget.SetFont(status1, "Eight Bit Dragon");
