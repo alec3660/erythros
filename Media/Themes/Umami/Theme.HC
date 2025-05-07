@@ -1399,6 +1399,9 @@ U0 @umami_tab_panel_repaint_tab(Window* win, TabPanelWidget* widget, I64* src_x,
 
     I64 tab_text_width = Print2D(NULL, Compositor.theme.font.menu, 0, 0, , , &tab->text);
     I64 tab_rect_width = T(tab->icon, 20, 0) + tab_text_width + 16;
+    if (widget->size) {
+        tab_rect_width = widget->size;
+    }
 
     tab->x = x;
     tab->y = y;
