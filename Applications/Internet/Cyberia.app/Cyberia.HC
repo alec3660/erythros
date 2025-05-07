@@ -1,6 +1,7 @@
 JsonObject* cyberia = Json.CreateObject(Fs);
 
 Window* win = NULL;
+TabPanelWidget* tabpanel1 = NULL;
 RectWidget* controlsbackdrop1 = NULL;
 TextLabelWidget* status1 = NULL;
 TextLabelWidget* status2 = NULL;
@@ -516,6 +517,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     append = @cyberia_append_widget_to_list(append, status1, browser->task);
     append = @cyberia_append_widget_to_list(append, status2, browser->task);
     append = @cyberia_append_widget_to_list(append, vscroll1, browser->task);
+    append = @cyberia_append_widget_to_list(append, tabpanel1, browser->task);
 
     vscroll1->scroll = 0;
 
@@ -572,13 +574,29 @@ U0 @cyberia_vscroll_change(Widget*)
 
 U0 @cyberia_win_repaint(Window*)
 {
-    if (!win || !addressbar1 || !background1 || !vscroll1 || !status1 || !statusbackdrop1)
+    if (!win || !tabpanel1 || !addressbar1 || !background1 || !vscroll1 || !status1 || !statusbackdrop1)
         return;
+
+    tabpanel1->width = win->width - 9;
+    tabpanel1->height = 28;
+
+    I64 offset_y = tabpanel1->y + tabpanel1->height + 1;
+
+    background1->y = offset_y + 36;
+    controlsbackdrop1->y = -8;
+    controlsbackdrop1->height = background1->y + 8;
+
+    backbtn1->y = offset_y + 0;
+    fwdbtn1->y = offset_y + 0;
+    refreshbtn1->y = offset_y + 0;
+    hanbagabtn1->y = offset_y + 0;
+
+    addressbar1->y = offset_y + 6;
 
     hanbagabtn1->x = win->width - hanbagabtn1->width - 9;
     addressbar1->width = hanbagabtn1->x - addressbar1->x - 3;
     background1->width = win->width - 9;
-    background1->height = win->height - 84;
+    background1->height = win->height - background1->y - 48;
 
     vscroll1->x = win->width;
     vscroll1->y = background1->y;
@@ -726,6 +744,8 @@ U0 @cyberia_init()
     Gui.Widget.SetCallback(addressbar1, "clicked", &@cyberia_addressbar_clicked);
     Gui.Window.SetCallback(win, "keypress", &@cyberia_win_keypress);
     widgets_base = win->widget;
+
+    tabpanel1 = Gui.CreateWidget(win, WIDGET_TYPE_TAB_PANEL, 0, 0, 0, 0);
 
     while (widgets_base->next) {
         widgets_base = widgets_base->next;
