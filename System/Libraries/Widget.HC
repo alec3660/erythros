@@ -254,6 +254,7 @@ class TabPanelTab {
     I64 width;
     I64 height;
     U8 text[128];
+    U64 data;
     Context2D* icon;
     @window_widgets_list* widgets_list;
 };
@@ -262,6 +263,7 @@ class TabPanelWidget : Widget {
     TabPanelTab* tabs;
     I64 index;
     I64 count;
+    I64 size;
 };
 
 U0 @gui_widget_set_echo(Widget* widget, U8* echo)
