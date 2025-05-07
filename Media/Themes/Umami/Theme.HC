@@ -1003,6 +1003,27 @@ U0 @umami_radio_select(Window* win, RadioButtonWidget* widget)
     }
 }
 
+Bool @umami_tab_hovered(TabPanelTab* tab, Window* win)
+{
+    return (Mouse.x > tab->x + win->x && Mouse.x < tab->x + tab->width + win->x && Mouse.y > tab->y + win->y && Mouse.y < tab->y + tab->height + win->y);
+}
+
+U0 @umami_tab_select(Window* win, TabPanelWidget* widget)
+{
+    if (!win || !widget || !widget->tabs)
+        return;
+    TabPanelTab* tab = widget->tabs;
+    I64 i = 0;
+    while (tab) {
+        if (@umami_tab_hovered(tab, win)) {
+            widget->index = i;
+            return;
+        }
+        tab = tab->next;
+        ++i;
+    }
+}
+
 Bool @umami_horz_slider_bar_is_hovered(I64 x, I64 y, Widget* widget)
 {
     no_warn y;
@@ -1308,12 +1329,6 @@ U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
         widget = win->mouse_down_widget;
         x = win->x + origin_x + widget->x;
         y = win->y + origin_y + widget->y;
-        if (@widget_is_hovered(x, y, widget) && widget->callback.clicked)
-            widget->callback.clicked(widget);
-        if (@widget_is_hovered(x, y, widget) && widget->echo) {
-            if (widget->echo->callback.clicked)
-                widget->echo->callback.clicked(widget->echo);
-        }
         if (@widget_is_hovered(x, y, widget)) {
             switch (widget->type) {
             case WIDGET_TYPE_CHECKBOX:
@@ -1322,6 +1337,8 @@ U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
             case WIDGET_TYPE_RADIO:
                 @umami_radio_select(win, widget);
                 break;
+            case WIDGET_TYPE_TAB_PANEL:
+                @umami_tab_select(win, widget);
             default:
                 break;
             }
@@ -1334,9 +1351,17 @@ U0 @umami_set_focused_and_hovered_widget(Window* win, I64 event)
             case WIDGET_TYPE_RADIO:
                 @umami_radio_select(win, widget->echo);
                 break;
+            case WIDGET_TYPE_TAB_PANEL:
+                @umami_tab_select(win, widget->echo);
             default:
                 break;
             }
+        }
+        if (@widget_is_hovered(x, y, widget) && widget->callback.clicked)
+            widget->callback.clicked(widget);
+        if (@widget_is_hovered(x, y, widget) && widget->echo) {
+            if (widget->echo->callback.clicked)
+                widget->echo->callback.clicked(widget->echo);
         }
         win->mouse_down_widget = NULL;
     }
@@ -1360,6 +1385,61 @@ U0 @umami_bordered_rect_repaint(Window* win, BorderedRectWidget* widget, I64 x, 
     }
     if (widget->right.size) {
         Rect2D(win->render_ctx, x + rw - widget->right.size, y + 0, widget->right.size, rh, widget->right.color);
+    }
+}
+
+U0 @umami_tab_panel_repaint_tab(Window* win, TabPanelWidget* widget, I64* src_x, I64* src_y, TabPanelTab* tab, Bool active)
+{
+    I64 x = *src_x;
+    I64 y = *src_y;
+
+    I64 i;
+    I64 y1 = T(active, 0, 2);
+    I64 y2 = T(active, widget->height - 1, widget->height - 2);
+
+    I64 tab_text_width = Print2D(NULL, Compositor.theme.font.menu, 0, 0, , , &tab->text);
+    I64 tab_rect_width = T(tab->icon, 20, 0) + tab_text_width + 16;
+
+    tab->x = x;
+    tab->y = y;
+    tab->width = tab_rect_width;
+    tab->height = T(active, y2 + 1, y2 - 1);
+
+    Rect2D(win->render_ctx, x, y + y1, tab_rect_width, T(active, y2 + 1, y2 - 1), Color(204, 204, 204, win->opacity));
+
+    Line2D(win->render_ctx, x + 2, y + y1, x + tab_rect_width - 3, y + y1, Color(255, 255, 255, win->opacity));
+
+    Plot2D(win->render_ctx, x + 1, y + y1 + 1, Color(255, 255, 255, win->opacity));
+    Plot2D(win->render_ctx, x + tab_rect_width - 2, y + y1 + 1, Color(152, 152, 152, win->opacity));
+
+    i = y1 + 2;
+    while (i < y2 + 1) {
+        Plot2D(win->render_ctx, x, y + i, Color(255, 255, 255));
+        Plot2D(win->render_ctx, x + tab_rect_width - 2, y + i, Color(152, 152, 152, win->opacity));
+        Plot2D(win->render_ctx, x + tab_rect_width - 1, y + i, Color(96, 96, 96, win->opacity));
+        ++i;
+    }
+
+    if (tab->icon) {
+        Blot2D(win->render_ctx, x + 7, y + y1 + 6, tab->icon);
+    }
+    Print2D(win->render_ctx, Compositor.theme.font.menu, x + 7 + T(tab->icon, 20, 0), y + y1 + 10, T(active, Color(0, 0, 0), Color(152, 152, 152)), , &tab->text);
+
+    x += tab_rect_width;
+    *src_x = x;
+}
+
+U0 @umami_tab_panel_repaint(Window* win, TabPanelWidget* widget, I64 x, I64 y)
+{
+    Rect2D(win->render_ctx, x, y, widget->width, widget->height, Color(204, 204, 204, win->opacity));
+    Line2D(win->render_ctx, x, y + widget->height - 1, x + widget->width - 1, y + widget->height - 1, Color(255, 255, 255, win->opacity));
+
+    TabPanelTab* tab = widget->tabs;
+    I64 i = 0;
+    while (tab) {
+        @umami_tab_panel_repaint_tab(win, widget, &x, &y, tab, i == widget->index);
+        tab = tab->next;
+        ++i;
     }
 }
 
@@ -1422,6 +1502,9 @@ U0 @umami_widgets_repaint(Window* win, I64 event, I64 origin_x, I64 origin_y)
                 break;
             case WIDGET_TYPE_LISTVIEW:
                 @umami_list_view_repaint(win, widget, x, y);
+                break;
+            case WIDGET_TYPE_TAB_PANEL:
+                @umami_tab_panel_repaint(win, widget, x, y);
                 break;
             case WIDGET_TYPE_MENU_ITEM:
                 @umami_menu_item_repaint(win, widget, x, y);

@@ -249,7 +249,12 @@ class ListViewWidget : Widget {
 class TabPanelTab {
     TabPanelTab* prev;
     TabPanelTab* next;
+    I64 x;
+    I64 y;
+    I64 width;
+    I64 height;
     U8 text[128];
+    Context2D* icon;
     @window_widgets_list* widgets_list;
 };
 
