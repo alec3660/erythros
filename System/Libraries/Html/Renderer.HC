@@ -2061,7 +2061,7 @@ Context2D* @process_favicon(Context2D* tmpctx)
 
 Context2D* @favicon_for_page(HtmlRenderer* renderer)
 {
-    if (!renderer)
+    if (!renderer || !StrICmp(renderer->current_url->host, "127.0.0.255"))
         return DEFAULT_FAVICON;
 
     U8 status_text_buffer[HTML_WORK_BUFFER_SIZE];

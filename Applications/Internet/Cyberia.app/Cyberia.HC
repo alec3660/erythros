@@ -340,15 +340,19 @@ U0 @cyberia_history()
     HttpUrl* url = renderer->current_url;
     StrCpy(&addressbar1->text, "");
 
-    Bool is_alternate_port = FALSE;
-    if (!StrICmp(url->scheme, "http://") && url->port != 80)
-        is_alternate_port = TRUE;
-    if (!StrICmp(url->scheme, "https://") && url->port != 443)
-        is_alternate_port = TRUE;
-    if (is_alternate_port)
-        String.Append(&addressbar1->text, "%s%s:%d%s%s", url->scheme, url->host, url->port, url->path, url->query);
-    else
-        String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
+    if (!StrICmp(url->host, "127.0.0.255")) {
+        StrCpy(&addressbar1->text, "about:newtab");
+    } else {
+        Bool is_alternate_port = FALSE;
+        if (!StrICmp(url->scheme, "http://") && url->port != 80)
+            is_alternate_port = TRUE;
+        if (!StrICmp(url->scheme, "https://") && url->port != 443)
+            is_alternate_port = TRUE;
+        if (is_alternate_port)
+            String.Append(&addressbar1->text, "%s%s:%d%s%s", url->scheme, url->host, url->port, url->path, url->query);
+        else
+            String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
+    }
 
     renderer->background_widget->color = renderer->background_color;
     @cyberia_set_tab_title_and_icon(browser->tab, renderer->current_title, @favicon_for_page(renderer));
@@ -392,6 +396,8 @@ U0 @cyberia_fwd_clicked()
     return list->next;
 }
 
+U8* NEW_TAB_HTML = "<html><head><title>New tab</title><body></body></html>";
+
 U0 @cyberia_navigate(Bool refresh = FALSE)
 {
     win->focused_widget = NULL;
@@ -400,7 +406,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
         return;
     }
 
-    if (MemCmp(&addressbar1->text, "http://", 7) && MemCmp(&addressbar1->text, "https://", 8)) {
+    if (MemCmp(&addressbar1->text, "about:", 6) && MemCmp(&addressbar1->text, "http://", 7) && MemCmp(&addressbar1->text, "https://", 8)) {
         U8 prepend_buf[512];
         StrPrint(prepend_buf, "https://%s", &addressbar1->text);
         StrCpy(&addressbar1->text, prepend_buf);
@@ -409,6 +415,10 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     U8* url_string = StrNew(&addressbar1->text);
     if (!url_string || !browser || !browser_task)
         return;
+
+    if (!StrCmp(&addressbar1->text, "about:newtab")) {
+        url_string = StrNew("http://127.0.0.255");
+    }
 
     if (!refresh) {
         browser->renderer = CAlloc(sizeof(HtmlRenderer), browser_task);
@@ -480,7 +490,20 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     U8* buffer = browser->fetch_buffer;
     MemSet(buffer, 0, HTTP_FETCH_BUFFER_SIZE);
 
-    @http_response* resp = Http.Get(renderer->current_url, buffer);
+    @http_response* resp = NULL;
+
+    if (!StrCmp(&addressbar1->text, "about:newtab")) {
+        resp = CAlloc(sizeof(@http_response));
+        resp->body.data = NEW_TAB_HTML;
+        resp->body.length = StrLen(NEW_TAB_HTML);
+        resp->state = HTTP_STATE_DONE;
+        resp->status.code = 200;
+        StrCpy(&addressbar1->text, "");
+        win->focused_widget = addressbar1;
+    } else {
+        resp = Http.Get(renderer->current_url, buffer);
+    }
+
     while (resp->state != HTTP_STATE_DONE) {
         if (resp->state >= HTTP_STATE_HEADERS_RECEIVED) {
             StrPrint(status_text_buffer, "Received %d bytes", resp->body.length);
@@ -586,7 +609,7 @@ U0 @cyberia_new_tab()
     tabpanel1->index = i;
     ++tabpanel1->count;
 
-    StrCpy(&addressbar1->text, "http://10.20.0.254:8000");
+    StrCpy(&addressbar1->text, "about:newtab");
     Spawn(&@cyberia_navigate);
     win->focused_widget = addressbar1;
 }
