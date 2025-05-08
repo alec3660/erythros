@@ -1,3 +1,5 @@
+CTask* browser_task = Fs;
+
 JsonObject* cyberia = Json.CreateObject(Fs);
 
 Window* win = NULL;
@@ -37,6 +39,7 @@ class @browser
     I64 history_index;
     JsonObject* javascript_link_handlers;
     CTask* task;
+    TabPanelTab* tab;
     U8* fetch_buffer;
     U8* lazyload_buffer;
     U8* lazyload_timeout_buffer;
@@ -44,7 +47,7 @@ class @browser
     U8* search_query;
 };
 
-@browser* browser = CAlloc(sizeof(@browser), Fs);
+@browser* browser = NULL;
 
 I64 @cyberia_is_alphanum(I64 c)
 {
@@ -87,7 +90,7 @@ U8* @cyberia_urlencode_str(U8* str, I64* output_len)
         return str;
 
     // Allocate memory for the encoded string + null terminator
-    encoded_str = CAlloc(encoded_len + 1, browser->task);
+    encoded_str = CAlloc(encoded_len + 1, browser_task);
     if (!encoded_str)
         return NULL;
 
@@ -110,17 +113,7 @@ U8* @cyberia_urlencode_str(U8* str, I64* output_len)
     return encoded_str;
 }
 
-browser->history = Json.CreateArray(Fs);
-browser->history_index = -1;
-browser->renderer = NULL;
-browser->task = Fs;
-browser->fetch_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
-browser->go_to_url_string = NULL;
-browser->javascript_link_handlers = Json.CreateObject(Fs);
-browser->lazyload_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
-browser->lazyload_timeout_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser->task);
-
-U0 @cyberia_win_close(Window* win)
+U0 @cyberia_win_really_close(Window* win)
 {
     // Free everything
     if (win == Compositor.active_win) {
@@ -129,6 +122,13 @@ U0 @cyberia_win_close(Window* win)
     Compositor.UnregisterForGlobalInputEvents(win);
     Compositor.DestroyWindow(win);
     Kill(app_event_loop);
+}
+
+U0 @cyberia_win_close(Window* win)
+{
+    if (KeyDown(SC_CTRL) && KeyDown(Char2ScanCode('w')))
+        return;
+    @cyberia_win_really_close(win);
 }
 
 U8* @browser_tls_connection_state(@http_response* resp)
@@ -307,8 +307,32 @@ U0 @cyberia_update_history_buttons()
         fwdbtn1->disabled = FALSE;
 }
 
+U0 @cyberia_set_tab_title_and_icon(TabPanelTab* tab, U8* title, Context2D* icon)
+{
+    if (!tab)
+        return;
+    if (icon) {
+        tab->icon = icon;
+    }
+    if (!title || !StrLen(title)) {
+        StrCpy(&tab->text, "Untitled page");
+    }
+    if (StrLen(title) > 32) {
+        MemCpy(&tab->text, title, 29);
+        StrCpy(&tab->text + 29, "...");
+    } else {
+        StrCpy(&tab->text, title);
+    }
+}
+
+U0 @cyberia_set_tab_title(U8* title)
+{
+    @cyberia_set_tab_title_and_icon(browser->tab, title, NULL);
+}
+
 U0 @cyberia_history()
 {
+    @cyberia_update_history_buttons;
     win->focused_widget = NULL;
 
     HtmlRenderer* renderer = browser->renderer = browser->history->@(browser->history_index);
@@ -327,13 +351,11 @@ U0 @cyberia_history()
         String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
 
     renderer->background_widget->color = renderer->background_color;
-
-    Gui.Window.SetTitle(renderer->win, renderer->current_title);
+    @cyberia_set_tab_title_and_icon(browser->tab, renderer->current_title, @favicon_for_page(renderer));
 
     widgets_base->next = renderer->widgets_base;
 
     @reflow_node_list(renderer);
-    Gui.Window.SetIcon(win, @favicon_for_page(renderer));
 
     status1->SetText("Done");
     refreshbtn1->disabled = FALSE;
@@ -345,7 +367,6 @@ U0 @cyberia_back_clicked()
         return;
     if (browser->history_index > 0) {
         --browser->history_index;
-        @cyberia_update_history_buttons;
         @cyberia_history;
     }
 }
@@ -356,7 +377,6 @@ U0 @cyberia_fwd_clicked()
         return;
     if (browser->history_index < browser->history->length - 1) {
         ++browser->history_index;
-        @cyberia_update_history_buttons;
         @cyberia_history;
     }
 }
@@ -387,11 +407,11 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     }
 
     U8* url_string = StrNew(&addressbar1->text);
-    if (!url_string || !browser || !browser->task)
+    if (!url_string || !browser || !browser_task)
         return;
 
     if (!refresh) {
-        browser->renderer = CAlloc(sizeof(HtmlRenderer), browser->task);
+        browser->renderer = CAlloc(sizeof(HtmlRenderer), browser_task);
         ++browser->history_index;
         while (browser->history->@(browser->history_index)) {
             browser->history->remove(browser->history_index);
@@ -402,13 +422,14 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
 
     HtmlRenderer* renderer = browser->renderer;
     MemSet(renderer, 0, sizeof(HtmlRenderer));
-    widgets_base->next = CAlloc(sizeof(@window_widgets_list), browser->task);
+    widgets_base->next = CAlloc(sizeof(@window_widgets_list), browser_task);
     widgets_base->next->prev = widgets_base;
     renderer->images = NULL;
     renderer->link_pointer = Compositor.theme.pointer.link;
     renderer->link_callback = &@cyberia_link_clicked;
     renderer->form_submit_callback = &@cyberia_form_submit_clicked;
     renderer->image_load_callback = &@reflow_node_list;
+    renderer->title_callback = &@cyberia_set_tab_title;
     renderer->widgets_base = widgets_base->next;
     renderer->status_widget = status1;
     renderer->background_widget = background1;
@@ -419,10 +440,10 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     renderer->win = win;
     renderer->indent = -1;
 
-    renderer->current_url_string = StrNew(url_string, browser->task);
+    renderer->current_url_string = StrNew(url_string, browser_task);
     renderer->current_url = @http_parse_url(url_string);
     renderer->cache_directory = HTTP_CACHE_DIRECTORY;
-    renderer->task = browser->task;
+    renderer->task = browser_task;
 
     U8 err_msg_buffer[128];
     U8 status_text_buffer[1024];
@@ -505,32 +526,194 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     status1->SetText("Rendering page...");
     Sleep(100);
     @render_node_list(node_list, renderer);
+    @cyberia_set_tab_title_and_icon(browser->tab, renderer->current_title, @favicon_for_page(renderer));
 
     @window_widgets_list* append = renderer->widgets_base;
-    append = @cyberia_append_widget_to_list(append, controlsbackdrop1, browser->task);
-    append = @cyberia_append_widget_to_list(append, backbtn1, browser->task);
-    append = @cyberia_append_widget_to_list(append, fwdbtn1, browser->task);
-    append = @cyberia_append_widget_to_list(append, refreshbtn1, browser->task);
-    append = @cyberia_append_widget_to_list(append, hanbagabtn1, browser->task);
-    append = @cyberia_append_widget_to_list(append, addressbar1, browser->task);
-    append = @cyberia_append_widget_to_list(append, statusbackdrop1, browser->task);
-    append = @cyberia_append_widget_to_list(append, status1, browser->task);
-    append = @cyberia_append_widget_to_list(append, status2, browser->task);
-    append = @cyberia_append_widget_to_list(append, vscroll1, browser->task);
-    append = @cyberia_append_widget_to_list(append, tabpanel1, browser->task);
+    append = @cyberia_append_widget_to_list(append, controlsbackdrop1, browser_task);
+    append = @cyberia_append_widget_to_list(append, backbtn1, browser_task);
+    append = @cyberia_append_widget_to_list(append, fwdbtn1, browser_task);
+    append = @cyberia_append_widget_to_list(append, refreshbtn1, browser_task);
+    append = @cyberia_append_widget_to_list(append, hanbagabtn1, browser_task);
+    append = @cyberia_append_widget_to_list(append, addressbar1, browser_task);
+    append = @cyberia_append_widget_to_list(append, statusbackdrop1, browser_task);
+    append = @cyberia_append_widget_to_list(append, status1, browser_task);
+    append = @cyberia_append_widget_to_list(append, status2, browser_task);
+    append = @cyberia_append_widget_to_list(append, vscroll1, browser_task);
+    append = @cyberia_append_widget_to_list(append, tabpanel1, browser_task);
 
     vscroll1->scroll = 0;
 
     @reflow_node_list(renderer);
-    Gui.Window.SetIcon(win, @favicon_for_page(renderer));
     @fetch_images_for_page(renderer);
 
     status1->SetText("Done");
     refreshbtn1->disabled = FALSE;
 }
 
-U0 @cyberia_win_keypress(Window* w, I64)
+U0 @cyberia_new_tab()
 {
+    TabPanelTab* new_tab = CAlloc(sizeof(TabPanelTab));
+    new_tab->icon = DEFAULT_FAVICON;
+    StrCpy(&new_tab->text, "New Tab");
+
+    @browser* new_browser = CAlloc(sizeof(@browser), browser_task);
+    new_browser->history = Json.CreateArray(browser_task);
+    new_browser->history_index = -1;
+    new_browser->tab = new_tab;
+    new_browser->renderer = NULL;
+    new_browser->task = browser_task;
+    new_browser->fetch_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser_task);
+    new_browser->go_to_url_string = NULL;
+    new_browser->javascript_link_handlers = Json.CreateObject(browser_task);
+    new_browser->lazyload_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser_task);
+    new_browser->lazyload_timeout_buffer = CAlloc(HTTP_FETCH_BUFFER_SIZE, browser_task);
+
+    browser = new_tab->data = new_browser;
+
+    I64 i = 0;
+    TabPanelTab* tabs = tabpanel1->tabs;
+    if (!tabs) {
+        tabpanel1->tabs = new_tab;
+    } else {
+        i = 1;
+        while (tabs->next) {
+            tabs = tabs->next;
+            ++i;
+        }
+        tabs->next = new_tab;
+        new_tab->prev = tabs;
+    }
+    tabpanel1->index = i;
+    ++tabpanel1->count;
+
+    StrCpy(&addressbar1->text, "http://10.20.0.254:8000");
+    Spawn(&@cyberia_navigate);
+    win->focused_widget = addressbar1;
+}
+
+TabPanelTab* @cyberia_tab_index(TabPanelWidget* widget, I64 index)
+{
+    TabPanelTab* tab = widget->tabs;
+    if (!tab) {
+        return NULL;
+    }
+    I64 i;
+    for (i = 0; i < index; i++) {
+        tab = tab->next;
+        if (!tab)
+            return NULL;
+    }
+    return tab;
+}
+
+U0 @cyberia_select_tab(I64 index)
+{
+    tabpanel1->index = index;
+    browser = @cyberia_tab_index(tabpanel1, index)->data;
+    @cyberia_history;
+}
+
+U0 @cyberia_close_current_tab()
+{
+    TabPanelTab* tab = @cyberia_tab_index(tabpanel1, tabpanel1->index);
+    --tabpanel1->count;
+
+    // FIXME: Free tab
+
+    // Close first tab
+    if (!tabpanel1->index) {
+        if (tab->next) {
+            tabpanel1->tabs = tab->next;
+        }
+        @cyberia_select_tab(tabpanel1->index);
+        return;
+    }
+
+    // Close last tab
+    if (tabpanel1->count == tabpanel1->index) {
+        if (tab->prev) {
+            tab->prev->next = NULL;
+        }
+        --tabpanel1->index;
+        @cyberia_select_tab(tabpanel1->index);
+        return;
+    }
+
+    // Close other tab
+    if (tab->prev) {
+        tab->prev->next = tab->next;
+    }
+    if (tab->next) {
+        tab->next->prev = tab->prev;
+    }
+    @cyberia_select_tab(tabpanel1->index);
+}
+
+U0 @cyberia_handle_numbered_tab_navigation()
+{
+    if (KeyDown(SC_ALT)) {
+        if (KeyDown(Char2ScanCode('1')) && tabpanel1->count > 0) {
+            @cyberia_select_tab(0);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('2')) && tabpanel1->count > 1) {
+            @cyberia_select_tab(1);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('3')) && tabpanel1->count > 2) {
+            @cyberia_select_tab(2);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('4')) && tabpanel1->count > 3) {
+            @cyberia_select_tab(3);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('5')) && tabpanel1->count > 4) {
+            @cyberia_select_tab(4);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('6')) && tabpanel1->count > 5) {
+            @cyberia_select_tab(5);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('7')) && tabpanel1->count > 6) {
+            @cyberia_select_tab(6);
+            return;
+        }
+        if (KeyDown(Char2ScanCode('8')) && tabpanel1->count > 7) {
+            @cyberia_select_tab(7);
+            return;
+        }
+    }
+}
+
+U0 @cyberia_win_keypress(Window* w, I64 event)
+{
+    if (!event)
+        return;
+
+    @cyberia_handle_numbered_tab_navigation;
+
+    if (KeyDown(SC_ALT)) {
+        if (KeyDown(Char2ScanCode('9'))) {
+            @cyberia_select_tab(tabpanel1->count - 1);
+            return;
+        }
+    }
+
+    if (KeyDown(SC_CTRL) && KeyDown(Char2ScanCode('t'))) {
+        @cyberia_new_tab;
+        return;
+    }
+    if (KeyDown(SC_CTRL) && KeyDown(Char2ScanCode('w'))) {
+        if (tabpanel1->count > 1) {
+            @cyberia_close_current_tab;
+        } else {
+            @cyberia_win_really_close(win);
+        }
+        return;
+    }
+
     if (!w || !w->focused_widget || !KeyDown(SC_ENTER))
         return;
 
@@ -556,12 +739,6 @@ U0 @cyberia_win_keypress(Window* w, I64)
     if (@cyberia_form_has_one_text_input_element(form_node)) {
         @cyberia_form_submit(form_node);
     }
-}
-
-U0 @cyberia_new_tab()
-{
-    // JsonObject* new_tab = Json.CreateObject(Fs);
-    // cyberia->a("tabs")->append(new_tab);
 }
 
 U0 @cyberia_vscroll_change(Widget*)
@@ -651,6 +828,13 @@ U0 @cyberia_addressbar_clicked(Widget*)
     }
 }
 
+U0 @cyberia_tabpanel_clicked(TabPanelWidget* widget)
+{
+    if (browser != @cyberia_tab_index(widget, widget->index)->data) {
+        @cyberia_select_tab(widget->index);
+    }
+}
+
 U0 @cyberia_win_mouseat(Window*)
 {
     if (addressbar1 && win->focused_widget != addressbar1) {
@@ -685,6 +869,7 @@ U0 @cyberia_init()
     Gui.Window.SetCallback(win, "repaint", &@cyberia_win_repaint);
     Gui.Window.SetCallback(win, "mouseat", &@cyberia_win_mouseat);
     Gui.Window.SetIcon(win, DEFAULT_FAVICON);
+    Gui.Window.SetTitle(win, "Cyberia Browser");
     Gui.Window.Center(win);
     Gui.Window.SetFocus(win);
 
@@ -743,15 +928,19 @@ U0 @cyberia_init()
     Gui.Widget.SetFont(addressbar1, "Eight Bit Dragon");
     Gui.Widget.SetCallback(addressbar1, "clicked", &@cyberia_addressbar_clicked);
     Gui.Window.SetCallback(win, "keypress", &@cyberia_win_keypress);
-    widgets_base = win->widget;
+    Compositor.RegisterForGlobalInputEvents(win);
 
     tabpanel1 = Gui.CreateWidget(win, WIDGET_TYPE_TAB_PANEL, 0, 0, 0, 0);
+    tabpanel1->size = 256;
+    Gui.Widget.SetCallback(tabpanel1, "clicked", &@cyberia_tabpanel_clicked);
+
+    widgets_base = win->widget;
 
     while (widgets_base->next) {
         widgets_base = widgets_base->next;
     }
 
-    win->focused_widget = addressbar1;
+    @cyberia_new_tab;
     @cyberia_win_repaint(win);
 }
 
