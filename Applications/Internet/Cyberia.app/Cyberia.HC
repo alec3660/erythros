@@ -718,7 +718,7 @@ U0 @cyberia_handle_numbered_tab_navigation()
 
 U0 @cyberia_win_keypress(Window* w, I64 event)
 {
-    if (!event)
+    if (!event || Compositor.active_win != win)
         return;
 
     @cyberia_handle_numbered_tab_navigation;
