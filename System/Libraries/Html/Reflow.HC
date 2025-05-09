@@ -369,7 +369,7 @@ U0 @reflow_set_initial_values(HtmlRenderer* renderer)
     renderer->reflow.bounds.x1 = 0;
     renderer->reflow.bounds.x2 = renderer->background_widget->width;
     renderer->reflow.bounds.y1 = 0;
-    renderer->reflow.bounds.y2 = renderer->win->height;
+    renderer->reflow.bounds.y2 = renderer->reflow_win->height;
     renderer->reflow.inline.x = 0;
     renderer->reflow.inline.y = 0;
     renderer->reflow.inline.max_line_height = RENDERER_DEFAULT_MAX_LINE_HEIGHT;
@@ -831,7 +831,7 @@ U0 @reflow_set_hyperlink_if_needed(Widget* widget, HtmlRenderer* renderer)
 
 U0 @reflow_node_list(HtmlRenderer* renderer)
 {
-    if (!renderer || !renderer->win || !renderer->widgets_base)
+    if (!renderer || !renderer->win || !renderer->reflow_win || !renderer->widgets_base)
         return;
 
     //"Reflow begin\n";

@@ -97,6 +97,7 @@ class @html_renderer
     RectWidget* background_widget;
     U32 background_color;
     Window* win;
+    Window* reflow_win;
     @window_widgets_list* widgets_base;
     @window_widgets_list* images;
     I64 inline_x;
@@ -1760,7 +1761,6 @@ U0 @apply_attribute_values_to_node(@html_dom_node* node)
 U0 @set_background_color_for_page(@html_dom_node* node, HtmlRenderer* renderer)
 {
     renderer->background_color = node->backgroundColor;
-    renderer->background_widget->color = renderer->background_color;
 }
 
 U0 @handle_tag_specific_functions(@html_dom_node* node, HtmlRenderer* renderer)
