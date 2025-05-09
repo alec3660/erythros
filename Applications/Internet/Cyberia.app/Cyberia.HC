@@ -319,7 +319,7 @@ U0 @cyberia_set_tab_title_and_icon(TabPanelTab* tab, U8* title, Context2D* icon)
     }
     if (StrLen(title) > 32) {
         MemCpy(&tab->text, title, 29);
-        StrCpy(&tab->text + 29, "...");
+        StrCpy(&tab->text + 28, "...");
     } else {
         StrCpy(&tab->text, title);
     }
@@ -354,12 +354,11 @@ U0 @cyberia_history()
             String.Append(&addressbar1->text, "%s%s%s%s", url->scheme, url->host, url->path, url->query);
     }
 
-    renderer->background_widget->color = renderer->background_color;
+    background1->color = renderer->background_color;
     @cyberia_set_tab_title_and_icon(browser->tab, renderer->current_title, @favicon_for_page(renderer));
 
-    widgets_base->next = renderer->widgets_base;
-
     @reflow_node_list(renderer);
+    widgets_base->next = renderer->widgets_base;
 
     status1->SetText("Done");
     refreshbtn1->disabled = FALSE;
@@ -398,6 +397,38 @@ U0 @cyberia_fwd_clicked()
 
 U8* NEW_TAB_HTML = "<html><head><title>New tab</title><body></body></html>";
 
+U0 @cyberia_init_renderer(HtmlRenderer* renderer, U8* url_string)
+{
+    MemSet(renderer, 0, sizeof(HtmlRenderer));
+
+    renderer->images = NULL;
+    renderer->link_pointer = Compositor.theme.pointer.link;
+
+    renderer->link_callback = &@cyberia_link_clicked;
+    renderer->form_submit_callback = &@cyberia_form_submit_clicked;
+    renderer->image_load_callback = &@reflow_node_list;
+    renderer->title_callback = &@cyberia_set_tab_title;
+
+    renderer->status_widget = status1;
+    renderer->background_color = Color(255, 255, 255);
+    renderer->background_widget = background1;
+
+    renderer->vertical_scroll_widget = vscroll1;
+
+    renderer->win = CAlloc(sizeof(Window), browser_task);
+    renderer->win->widget = CAlloc(sizeof(@window_widgets_list), browser_task);
+    renderer->widgets_base = renderer->win->widget;
+    renderer->reflow_win = win;
+
+    renderer->indent = -1;
+    // renderer->debug = 1;
+
+    renderer->current_url_string = StrNew(url_string, browser_task);
+    renderer->current_url = @http_parse_url(url_string);
+    renderer->cache_directory = HTTP_CACHE_DIRECTORY;
+    renderer->task = browser_task;
+}
+
 U0 @cyberia_navigate(Bool refresh = FALSE)
 {
     win->focused_widget = NULL;
@@ -431,29 +462,7 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
     }
 
     HtmlRenderer* renderer = browser->renderer;
-    MemSet(renderer, 0, sizeof(HtmlRenderer));
-    widgets_base->next = CAlloc(sizeof(@window_widgets_list), browser_task);
-    widgets_base->next->prev = widgets_base;
-    renderer->images = NULL;
-    renderer->link_pointer = Compositor.theme.pointer.link;
-    renderer->link_callback = &@cyberia_link_clicked;
-    renderer->form_submit_callback = &@cyberia_form_submit_clicked;
-    renderer->image_load_callback = &@reflow_node_list;
-    renderer->title_callback = &@cyberia_set_tab_title;
-    renderer->widgets_base = widgets_base->next;
-    renderer->status_widget = status1;
-    renderer->background_widget = background1;
-    renderer->background_color = Color(255, 255, 255);
-    renderer->background_widget->color = renderer->background_color;
-
-    renderer->vertical_scroll_widget = vscroll1;
-    renderer->win = win;
-    renderer->indent = -1;
-
-    renderer->current_url_string = StrNew(url_string, browser_task);
-    renderer->current_url = @http_parse_url(url_string);
-    renderer->cache_directory = HTTP_CACHE_DIRECTORY;
-    renderer->task = browser_task;
+    @cyberia_init_renderer(renderer, url_string);
 
     U8 err_msg_buffer[128];
     U8 status_text_buffer[1024];
@@ -566,11 +575,8 @@ U0 @cyberia_navigate(Bool refresh = FALSE)
 
     vscroll1->scroll = 0;
 
-    @reflow_node_list(renderer);
+    @cyberia_history;
     @fetch_images_for_page(renderer);
-
-    status1->SetText("Done");
-    refreshbtn1->disabled = FALSE;
 }
 
 U0 @cyberia_new_tab()
@@ -884,6 +890,14 @@ U0 @cyberia_win_mouseat(Window*)
     Free(resolved_href);
 }
 
+U0 @cyberia_init_widgets_base()
+{
+    widgets_base = win->widget;
+    while (widgets_base->next) {
+        widgets_base = widgets_base->next;
+    }
+}
+
 U0 @cyberia_init()
 {
     win = Compositor.CreateWindow(24, 24, 992, 768, WIN_FLAGS_DEFAULT);
@@ -954,14 +968,10 @@ U0 @cyberia_init()
     Compositor.RegisterForGlobalInputEvents(win);
 
     tabpanel1 = Gui.CreateWidget(win, WIDGET_TYPE_TAB_PANEL, 0, 0, 0, 0);
-    tabpanel1->size = 256;
+    tabpanel1->size = 234;
     Gui.Widget.SetCallback(tabpanel1, "clicked", &@cyberia_tabpanel_clicked);
 
-    widgets_base = win->widget;
-
-    while (widgets_base->next) {
-        widgets_base = widgets_base->next;
-    }
+    @cyberia_init_widgets_base;
 
     @cyberia_new_tab;
     @cyberia_win_repaint(win);
