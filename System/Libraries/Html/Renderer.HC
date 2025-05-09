@@ -2248,5 +2248,6 @@ U0 @fetch_images_for_page(HtmlRenderer* renderer)
         @fetch_next_image : image_list_item = image_list_item->next;
     }
 
+    @html_renderer_update_status_text(renderer, "Done");
     Free(buffer);
 }
