@@ -868,35 +868,39 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
         //            node->fontSize = ToI64((Str2I64(node_tmpnum_buf) / 3) * 2);
         //        }
 
-        if (!StrICmp(key->name, "font-size")) {
-            StrCpy(node_tmpnum_buf, values->@(0));
-            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "em")) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
-            }
-            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "pt")) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * 1.33333333);
-            }
-            if (!StrICmp(values->@(0) + StrLen(values->@(0)) - 2, "px")) {
-                node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
-                node->fontSize = Str2I64(node_tmpnum_buf);
-            }
-        }
-
-        if (!StrICmp(key->name, "font-weight")) {
-            if (values->@(0)(U8*)[0] >= '0' && values->@(0)(U8*)[0] <= '9') {
-                node->fontWeight = Str2I64(values->@(0));
-            }
-            if (!StrICmp(values->@(0), "bold")) {
-                node->fontWeight = 700;
-            }
-            if (!StrICmp(values->@(0), "normal")) {
-                node->fontWeight = 400;
+        if (!StrICmp(key->name, "font-size") || !StrICmp(key->name, "font")) {
+            for (j = 0; j < values->length; j++) {
+                StrCpy(node_tmpnum_buf, values->@(j));
+                if (!StrICmp(values->@(j) + StrLen(values->@(j)) - 2, "em")) {
+                    node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                    node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * RENDERER_DEFAULT_MAX_LINE_HEIGHT);
+                }
+                if (!StrICmp(values->@(j) + StrLen(values->@(j)) - 2, "pt")) {
+                    node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                    node->fontSize = ToI64(Str2F64(node_tmpnum_buf) * 1.33333333);
+                }
+                if (!StrICmp(values->@(j) + StrLen(values->@(j)) - 2, "px")) {
+                    node_tmpnum_buf[StrLen(node_tmpnum_buf) - 2] = NULL;
+                    node->fontSize = Str2I64(node_tmpnum_buf);
+                }
             }
         }
 
-        if (!StrICmp(key->name, "font-family")) {
+        if (!StrICmp(key->name, "font-weight") || !StrICmp(key->name, "font")) {
+            for (j = 0; j < values->length; j++) {
+                if (values->@(j)(U8*)[0] >= '0' && values->@(j)(U8*)[0] <= '9') {
+                    node->fontWeight = Str2I64(values->@(j));
+                }
+                if (!StrICmp(values->@(j), "bold")) {
+                    node->fontWeight = 700;
+                }
+                if (!StrICmp(values->@(j), "normal")) {
+                    node->fontWeight = 400;
+                }
+            }
+        }
+
+        if (!StrICmp(key->name, "font-family") || !StrICmp(key->name, "font")) {
             for (j = 0; j < values->length; j++) {
 
                 match_font_family = values->@(j);
@@ -914,9 +918,11 @@ Bool @apply_css_properties_to_node(@html_dom_node* node, JsonObject* properties)
             }
         }
 
-        if (!StrICmp(key->name, "font-style")) {
-            if (!StrICmp(values->@(0), "italic")) {
-                node->italic = TRUE;
+        if (!StrICmp(key->name, "font-style") || !StrICmp(key->name, "font")) {
+            for (j = 0; j < values->length; j++) {
+                if (!StrICmp(values->@(j), "italic")) {
+                    node->italic = TRUE;
+                }
             }
         }
     css_continue_to_next_property:
